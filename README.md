@@ -4,10 +4,12 @@
 > *An empirical investigation into the heterogeneous impact of R&D
 > investment on economic productivity across 25 EU member states over a
 > 25-year panel (1998–2023).*
+>
+> **Shipped sample:** the `panel_data.xlsx` bundled here covers **23 countries, 2000–2023** (24 years, 552 rows) — Austria, Cyprus, and Ireland from the thesis's original EU-25/1998 scope are not present in this shipped subsample.
 
 An interactive desktop application (Tkinter + matplotlib) that reproduces
 the empirical workflow of the thesis end-to-end. It loads a World-Bank
-panel of EU-25 economies, lets you build and estimate an **augmented
+panel of EU economies, lets you build and estimate an **augmented
 Solow model** enriched with R&D and patent indicators, runs a **K-Means
 typology** to separate Innovative leaders from Emerging adopters, and
 then estimates **panel FE / RE** models inside each cluster — validating
@@ -39,7 +41,7 @@ significantly negative initial-GDP coefficients.
 
 ```mermaid
 flowchart TD
-    WB["World Bank panel<br/>EU-25, 1998-2023"] --> Load["main.py — panel_data.xlsx load"]
+    WB["World Bank panel<br/>23 EU countries, 2000-2023"] --> Load["main.py — panel_data.xlsx load"]
     Load --> Solow["Augmented Solow model<br/>+ R&D / patent indicators"]
     Solow --> KMeans["K-Means typology<br/>(Innovative leaders / Emerging adopters)"]
     KMeans --> FERE["Panel FE / RE per cluster"]
@@ -75,15 +77,14 @@ tabs top-to-bottom reproduces the empirical workflow of the thesis.
 ### 1 · Data
 1. Click **Browse…** and pick `panel_data.xlsx` (shipped alongside the
    code; 552 rows × 16 cols, long-form country × year).
-2. Leave the year range at **1998 – 2023**.
+2. Leave the year range at **2000 – 2023**.
 3. Click **EU-25** (or **Innovative** / **Emerging** if you already want
    to focus on one cluster).
-4. Hit **Apply Filters**. The status bar should read *"552 obs · 25
+4. Hit **Apply Filters**. The status bar should read *"552 obs · 23
    countries · 24 years"*.
 5. Optional but recommended: click **Panel Structure Report** — it
    prints whether the panel is balanced and a per-variable missingness
-   table. Expect a balanced 25 × 24 = 600-cell grid (actual row count
-   may be slightly lower if World-Bank releases left some cells blank).
+   table. Expect a balanced 23 × 24 = 552-cell grid.
 6. In **Data Transformation Tools**, pre-build:
    - `Y by L → Log-Level` (for productivity).
    - `PIB towards research → Log-Level`.
@@ -217,7 +218,7 @@ Thesis Interface Build/
 ├── theme.py                 # palettes, ttk styles, matplotlib defaults
 ├── constants.py             # EU groupings + thesis clusters + helpers
 ├── helpers.py               # shared UI + plot embedding helpers
-├── panel_data.xlsx          # shipped EU-25 sample (1998–2023)
+├── panel_data.xlsx          # shipped sample: 23 countries, 2000-2023
 ├── tabs/
 │   ├── tab_data.py          # 1 · Data         — loading, filtering, transforms
 │   ├── tab_stats.py         # 2 · Statistics   — descriptives + correlations

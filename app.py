@@ -6,6 +6,10 @@ Thesis:
      Research & Development investment on economic productivity across
      25 EU member states over a 25-year panel (1998–2023)."
 
+    NOTE: the shipped sample (panel_data.xlsx) covers 23 countries over
+    2000-2023 -- Austria, Cyprus, and Ireland from the thesis's EU-25
+    scope are not present in this shipped subsample.
+
 The app assembles every analytical tab via multiple inheritance of mixins
 (see tabs/tab_*.py).  Each mixin contributes one tab's ``_tab_XXX`` builder
 and all related helper methods.  Shared state (df, ml_model, clusters, …)
@@ -35,7 +39,7 @@ from tabs.tab_report      import ReportTabMixin
 
 
 APP_TITLE    = "Augmented Solow · R&D Heterogeneity Lab"
-APP_SUBTITLE = ("EU-25 Panel · 1998–2023 · World Bank DataBank   "
+APP_SUBTITLE = ("EU-25 sample (23 countries shipped) · 2000-2023 · World Bank DataBank   "
                 "│   K-Means typology · Panel FE/RE · Hausman · Unit-Root Tests")
 
 
@@ -78,7 +82,7 @@ class ThesisApp(
         self.root = root
         self.root.title(
             "Augmented Solow · R&D Heterogeneity Lab  "
-            "— EU-25 Panel Study (1998–2023)")
+            "— EU-25 Panel Study (23 countries shipped, 2000-2023)")
         try:
             self.root.state("zoomed")
         except tk.TclError:

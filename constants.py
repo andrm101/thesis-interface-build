@@ -1,8 +1,12 @@
 """
 constants.py — Application-wide lookup tables and significance helpers.
 
-All country groupings here reflect the thesis sample (EU-25, 1998–2023) and
-the two-cluster K-Means typology reported in the dissertation:
+All country groupings here reflect the thesis sample (EU-25, 1998-2023);
+note the shipped panel_data.xlsx covers only 23 of these 25 countries
+over 2000-2023 -- Austria, Cyprus, and Ireland are absent from the data
+though still listed in the clusters below (a priori labels from the
+original thesis run). The two-cluster K-Means typology reported in the
+dissertation:
 
     • Innovation Leaders ("Innovative") — Nordic and Central European
       economies with high R&D intensity and strong absorptive capacity.
