@@ -156,6 +156,14 @@ Run a cross-sectional OLS of average productivity growth on
 cluster — both slopes should be negative and significant, confirming
 conditional convergence.
 
+**Phillips-Sul convergence clubs** (Phillips & Sul 2007, 2009; club
+merging per Schnurbus et al. 2017): *log-t Test (all)* tests whether the
+whole sample converges; *Club Clustering* finds the clubs that do, plots
+their relative transition paths, and *Use Clubs as Clusters* feeds them to
+the Tab 2 group tests (and Tab 8 when there are exactly two clubs). For the
+shipped growth-index data keep *Chain growth index* ticked — clubs then
+describe cumulative growth since 2000 rather than productivity levels.
+
 ### 5 · Clustering  *(the typology)*
 1. Keep the default variables selected: **PIB towards research**,
    **Labor in research**, **Patents per capita**, **Human Capital
@@ -170,10 +178,14 @@ conditional convergence.
    loading arrows — this mirrors the thesis' country-typology figure.
 
 ### 6 · ML Models
-Train supervised models (Random Forest, Gradient Boosting, etc.) using
-the same productivity target. The ML results are benchmarks for the
-econometric models — they should match the sign and rank of the key
-drivers identified by the panel FE specification.
+Train supervised models (Random Forest, Gradient Boosting, Ridge, Lasso) on
+the productivity target. **CV scheme** defaults to *Grouped by country*
+(whole countries held out, scaling fitted inside each fold); *Forward-
+chaining* trains on earlier years and tests on later ones. The table also
+prints the leaky random-K-fold R² so the gap is visible. The best model is
+chosen by CV R². Note that `TFP Growth Rate` and `A` are near-mechanical
+predictors of `Y by L` (growth accounting) — untick them for a substantive
+benchmark.
 
 ### 7 · Scenarios
 Counterfactuals: move a country's R&D intensity to the cluster mean and
@@ -268,6 +280,8 @@ thesis-interface-build/
 ├── helpers.py               # shared UI + plot embedding helpers
 ├── outliers.py              # z-score outlier screen (country / observation)
 ├── eda.py                   # EDA test battery (normality, groups, CD, breaks…)
+├── clubs.py                 # Phillips-Sul log-t test + convergence clubs
+├── ml_eval.py               # leakage-safe CV (grouped / forward-chaining)
 ├── panel_data.xlsx          # shipped sample: 23 countries, 2000-2023
 ├── tabs/
 │   ├── tab_data.py          # 1 · Data         — loading, filtering, transforms

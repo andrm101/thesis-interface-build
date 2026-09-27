@@ -14,7 +14,7 @@ wherever a family is run over many variables.
 | H3 | Aggregate R&D–productivity link is negative/weak but positive among leaders (GERD paradox) | Thesis; Griffith, Redding & Van Reenen (2004) | Cluster-wise FE; pooled vs. within correlations (Simpson check) | ✅ Tab 3/8, Tab 2 |
 | H4 | R&D returns depend on absorptive capacity (human capital) | Cohen & Levinthal (1990); Griffith et al. (2004) | R&D × human-capital interaction; threshold regression | ✅ Tab 12 |
 | H5 | Conditional β- and σ-convergence | Barro & Sala-i-Martin (1992) | Cross-sectional OLS on initial level; dispersion over time | ✅ Tab 4 |
-| H6 | Countries converge in **clubs**, not globally | Phillips & Sul (2007) | log-t test + clustering algorithm | 🔧 next tier |
+| H6 | Countries converge in **clubs**, not globally | Phillips & Sul (2007) | log-t test + clustering algorithm | ✅ Tab 4 (growth-path clubs); 📥 PWT levels for level clubs |
 | H7 | R&D pays off more near the technological frontier; imitation pays off far from it | Acemoglu, Aghion & Zilibotti (2006); Aghion & Howitt (2006) | R&D × distance-to-frontier interaction | 📥 PWT TFP level |
 | H8 | R&D leads productivity with a lag; productivity does not lead R&D | Griliches (1979) knowledge-stock lag | Lead-lag correlogram; panel Granger (Dumitrescu-Hurlin) | ✅ Tab 2 lead-lag, Tab 11 Granger; 🔧 D-H |
 | H9 | Foreign R&D spills over through trade | Coe & Helpman (1995) | Trade-weighted foreign R&D stock in FE | 📥 trade weights |
@@ -38,5 +38,7 @@ Reenen (2002) *JPubE*; Coe & Helpman (1995) *EER*; Cohen & Levinthal (1990)
 Martin, Nguyen & Van Reenen (2023) *AEJ: Policy*; Fatás & Summers (2018)
 *JIE*; Griffith, Redding & Van Reenen (2004) *REStat*; Griliches (1979)
 *Bell J. Econ.*; Mankiw, Romer & Weil (1992) *QJE*; Pesaran (2004) CESifo WP
-1229, (2007) *J. Appl. Econometrics*; Phillips & Sul (2007) *Econometrica*;
+1229, (2007) *J. Appl. Econometrics*; Phillips & Sul (2007) *Econometrica*,
+(2009) *J. Appl. Econometrics*; Schnurbus, Haupt & Meier (2017) *Oxford
+Bull. Econ. Stat.*;
 Rodrik, Subramanian & Trebbi (2004) *J. Econ. Growth*; Solow (1956) *QJE*.
