@@ -196,6 +196,18 @@ Heterogeneity in the preferred specification (★):
 
 Dynamic two-way FE with the same regressors (Nickell-biased, R&D treated as exogenous): log_RD_stock_per_worker: β = +1.078 (p = 0.129); RD_pct_GDP: β = +0.387 (p = 0.257).
 
+**C1 · β-convergence by typology (Tab 4 → Absolute β-Convergence on Tab 1 group filters):**
+
+| Sample | β | SE | p | speed λ (%/yr) | R² | countries |
+|---|---|---|---|---|---|---|
+| All | -1.638 | 0.152 | 0.000*** | 2.055 | 0.830 | 24 |
+| Innovative | 1.512 | 0.448 | 0.001*** | -1.298 | 0.385 | 8 |
+| Emerging | -2.198 | 0.226 | 0.000*** | 3.063 | 0.892 | 16 |
+
+Negative β = initially poorer countries grew faster. With 8-15 countries per group
+the within-group slopes are imprecise; the frontier-gap coefficient (B7) is the
+panel counterpart.
+
 **B12 · DML sensitivity (sample × learner):**
 
 | Sample | Learner | θ | θ p | ∂θ/∂gap | slope p | θ Innovative | θ Emerging |

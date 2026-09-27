@@ -46,6 +46,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 THESIS = os.path.join(HERE, "panel_data.xlsx")
 LEVELS = os.path.join(HERE, "data", "panel_levels.csv")
 OUT = os.path.join(HERE, "results", "RESULTS.md")
+# Raw estimates stashed by the analyses for figures.py (--figures).
+ART: dict = {}
 
 TAB3_REGS = ["Savings Percentage", "Human Capital Proxy", "Labor in research",
              "PIB towards research", "Patents per capita",
@@ -135,26 +137,43 @@ def fe_by_group(df, groups, focus, dep="Y by L", regs=TAB3_REGS):
     return pd.DataFrame(rows)
 
 
-def lag_profile(df, max_lag=4):
-    """Two-way FE coefficient on R&D growth lagged L years, by group
-    (Tab 3 spec with the R&D regressor replaced by its L-th lag)."""
+def lag_profile_raw(df, max_lag=4):
+    """Two-way FE coefficient (and SE, p) on R&D growth lagged L years, by
+    group (Tab 3 spec with the R&D regressor replaced by its L-th lag)."""
     df = df.sort_values(["Country", "Year"])
     g = groups_apriori(df)
     rows = []
     for name, sub in [("All", df)] + [
             (k, df[df["Country"].map(g) == k]) for k in ("Innovative",
                                                          "Emerging")]:
-        rec = {"Sample": name}
         for L in range(max_lag + 1):
             d = sub.copy()
             d["RD_lag"] = d.groupby("Country")["PIB towards research"].shift(L)
             regs = ["RD_lag"] + [r for r in TAB3_REGS if r in d.columns
                                  and r != "PIB towards research"]
             fe, _, _ = tab3_fe(d, "Y by L", regs)
-            rec[f"L{L}"] = (f"{fe.params['RD_lag']:+.3f}"
-                            f"{stars(fe.pvalues['RD_lag'])}")
-        rows.append(rec)
+            rows.append({"Sample": name, "L": L,
+                         "coef": fe.params["RD_lag"],
+                         "se": fe.std_errors["RD_lag"],
+                         "p": fe.pvalues["RD_lag"]})
     return pd.DataFrame(rows)
+
+
+def _tab(name, df, caption, label):
+    """Register *df* for LaTeX export and return it unchanged."""
+    ART.setdefault("tables", {})[name] = (df, caption, label)
+    return df
+
+
+def lag_profile(df, max_lag=4, key=None):
+    raw = lag_profile_raw(df, max_lag)
+    if key:
+        ART[key] = raw
+    wide = raw.assign(v=[f"{c:+.3f}{stars(p)}" for c, p in
+                         zip(raw.coef, raw.p)]).pivot(
+        index="Sample", columns="L", values="v")
+    wide.columns = [f"L{c}" for c in wide.columns]
+    return wide.loc[["All", "Innovative", "Emerging"]].reset_index()
 
 
 def kmeans_typology(df, cols):
@@ -214,6 +233,12 @@ def gmm_section(df):
                          and 0.05 < r.hansen_p < 0.99
                          and r.n_instruments <= r.n_groups)
                 lr, lrse = r.long_run[x]
+                ART.setdefault("gmm", []).append(
+                    {"measure": x,
+                     "label": f"{'stock' if x.startswith('log') else 'R&D % GDP'}"
+                              f", {yl} y-lag{'s' if yl > 1 else ''}, "
+                              f"Z lags {lags[0]}-{lags[1]}",
+                     "beta": r.params[x], "se": r.se[x], "valid": valid})
                 rows.append({"R&D measure": x, "y lags": yl,
                              "instr. lags": f"{lags[0]}-{lags[1]}",
                              "β R&D": r.params[x], "p": pstar(r.pvalues[x]),
@@ -247,6 +272,12 @@ def gmm_section(df):
                      time_effects=True).fit(cov_type="clustered",
                                             cluster_entity=True)
         fes.append(f"{x}: β = {f.params[x]:+.3f} (p = {pstar(f.pvalues[x])})")
+    T_ = ART.setdefault("tables", {})
+    T_["tab_gmm_grid"] = (grid, "System GMM with R&D endogenous: "
+                          "specification grid and diagnostics", "tab:gmm")
+    T_["tab_gmm_heterogeneity"] = (
+        pd.DataFrame(het), "System GMM, preferred specification: R&D "
+        "effect by typology", "tab:gmmhet")
     return ["**B13 · Reverse causality: system GMM with R&D endogenous "
             "(Tab 14 → Dynamic GMM):**\n",
             "y = 100·log output per worker; R&D instrumented with its own "
@@ -279,13 +310,16 @@ def track_a(quick):
     L += ["**A2 · Panel FE (Tab 3 defaults: log, entity + time FE, clustered "
           f"SE), N = {int(fe.nobs)}:**\n", md_table(t),
           f"\nHausman FE vs RE: χ²({k}) = {H:.2f}, p = {pstar(pH)}\n"]
+    gA = fe_by_group(df, groups_apriori(df),
+                     ["PIB towards research", "Savings Percentage"])
+    ART.setdefault("tables", {})["tab_fe_by_group_trackA"] = (
+        gA, "Two-way FE by typology, thesis panel", "tab:feA")
     L += ["**A3 · GERD paradox — FE by a-priori group (Tab 3 on Tab 1 "
-          "filters):**\n",
-          md_table(fe_by_group(df, groups_apriori(df),
-                               ["PIB towards research", "Savings Percentage"])),
-          ""]
+          "filters):**\n", md_table(gA), ""]
     L += ["**A3b · Timing — coefficient on R&D growth lagged L years "
-          "(two-way FE):**\n", md_table(lag_profile(df)),
+          "(two-way FE):**\n", md_table(_tab("tab_lag_profile", lag_profile(df, key="lags_A"),
+                                     "FE coefficient on R&D growth lagged L "
+                                     "years (thesis panel)", "tab:lags")),
           "\nSame-year R&D growth is negative for the Innovative group; "
           "lags 1-3 turn positive\n(a J-curve), so the sign depends on "
           "timing — see *Methodology → What reproduces*.\n"]
@@ -304,6 +338,77 @@ def track_a(quick):
     return "\n".join(L)
 
 
+def beta_convergence(df):
+    """C1: cross-country absolute β-convergence by typology.
+    growth_i = a + β·log y_i,2000 + e_i, growth = average annual % growth
+    of output per worker 2000-2023; HC1 SEs. Implied speed
+    λ = −ln(1 + β·T/100)/T."""
+    d = df[df["Year"].isin([2000, 2023])].pivot_table(
+        index="Country", columns="Year", values="log_Y_per_worker").dropna()
+    T = 23
+    cs = pd.DataFrame({"Country": d.index, "initial": d[2000].values,
+                       "growth": (d[2023] - d[2000]).values / T * 100})
+    cs["Group"] = cs["Country"].map(groups_apriori(df))
+    rows, fits = [], {}
+    for name, sub in [("All", cs)] + [(k, cs[cs.Group == k])
+                                      for k in ("Innovative", "Emerging")]:
+        f = sm.OLS(sub["growth"], sm.add_constant(sub["initial"])).fit(
+            cov_type="HC1")
+        b = f.params["initial"]
+        lam = (-np.log(1 + b * T / 100) / T * 100
+               if b * T / 100 > -1 else np.nan)
+        fits[name] = {"a": f.params["const"], "beta": b,
+                      "p": f.pvalues["initial"]}
+        rows.append({"Sample": name, "β": b, "SE": f.bse["initial"],
+                     "p": pstar(f.pvalues["initial"]),
+                     "speed λ (%/yr)": lam, "R²": f.rsquared,
+                     "countries": len(sub)})
+    ART["beta"] = (cs, fits)
+    t = pd.DataFrame(rows)
+    ART.setdefault("tables", {})["tab_beta_convergence"] = (
+        t, "Absolute beta-convergence of output per worker by typology, "
+           "2000-2023", "tab:beta")
+    return ["**C1 · β-convergence by typology (Tab 4 → Absolute "
+            "β-Convergence on Tab 1 group filters):**\n", md_table(t),
+            "\nNegative β = initially poorer countries grew faster. With "
+            "8-15 countries per group\nthe within-group slopes are "
+            "imprecise; the frontier-gap coefficient (B7) is the\npanel "
+            "counterpart.\n"]
+
+
+def make_figures(root):
+    """Figures (PNG + PDF) and LaTeX tables from the stashed estimates."""
+    import figures as F
+    fdir, tdir = os.path.join(root, "figures"), os.path.join(root, "tables")
+    os.makedirs(fdir, exist_ok=True)
+    os.makedirs(tdir, exist_ok=True)
+    F._style()
+    made = []
+    if "typology" in ART:
+        df, _ = ART["typology"]
+        made.append(F.fig_typology(df, LEVEL_RD, groups_apriori(df), fdir))
+    if "clubs" in ART:
+        made.append(F.fig_clubs(*ART["clubs"], fdir))
+    if "lags_A" in ART:
+        prof = {"Track A — thesis panel": ART["lags_A"]}
+        if "lags_B" in ART:
+            prof["Track B — rebuilt panel"] = ART["lags_B"]
+        made.append(F.fig_jcurve(prof, fdir))
+    if "events" in ART:
+        made.append(F.fig_event_study(ART["events"], fdir))
+    if "gmm" in ART:
+        made.append(F.fig_gmm(pd.DataFrame(ART["gmm"]), fdir))
+    if "dml" in ART:
+        made.append(F.fig_dml(pd.DataFrame(ART["dml"]), fdir))
+    if "beta" in ART:
+        made.append(F.fig_beta(*ART["beta"], fdir))
+    for name, (df_, cap, lab) in ART.get("tables", {}).items():
+        with open(os.path.join(tdir, f"{name}.tex"), "w",
+                  encoding="utf-8") as fh:
+            fh.write(F.to_latex(df_, cap, lab))
+    return made
+
+
 def track_b(quick):
     nb, ns = (29, 50) if quick else (299, 300)
     L = ["## Track B — rebuilt level panel (`data/panel_levels.csv`)\n",
@@ -316,6 +421,8 @@ def track_b(quick):
     L.append(f"**B1 · Z-screen:** excluded {hits or 'none'} → "
              f"{df['Country'].nunique()} countries.\n")
     km = kmeans_typology(df, LEVEL_RD)
+    ART["typology"] = (df, km)
+    ART["lags_B"] = lag_profile_raw(df)
     L.append(f"**B2 · K-Means, K = 2, LEVEL R&D variables (Tab 5 default "
              f"on this panel):** silhouette {km['silhouette']:.2f}, agreement "
              f"with the thesis typology {km['agreement']:.0%}.\n"
@@ -326,6 +433,7 @@ def track_b(quick):
                                ["PIB towards research", "Human Capital Proxy",
                                 "Savings Percentage"])), ""]
     lx = clubs.prepare_panel(df, "Y_per_worker", chain=False)
+    ART["clubs"] = (lx, clubs.club_clustering(lx))
     L += ["**B4 · Phillips-Sul clubs on log output per worker levels "
           "(Tab 4, chain unticked):**\n", club_lines(clubs.club_clustering(lx)),
           ""]
@@ -365,11 +473,15 @@ def track_b(quick):
         for dt in (False, True):
             r = causal.event_study(df, "Y_per_worker", causal.EU_ACCESSION,
                                    4, 8, nb, control=ctrl, detrend=dt)
+            ART.setdefault("events", {})[(ctrl, dt)] = r
             rows.append({"Controls": ctrl, "Detrended": dt,
                          "Post ATT %": r.overall_post,
                          "SE": r.overall_post_se,
                          "Pre-trend": r.pretrend_mean,
                          "Pre-trend p": pstar(r.pretrend_p)})
+    ART.setdefault("tables", {})["tab_event_study"] = (
+        pd.DataFrame(rows), "EU accession event study (Callaway-Sant'Anna): "
+        "control groups and pre-trend adjustment", "tab:event")
     L += ["**B9 · EU accession event study, Callaway-Sant'Anna (Tab 14):**\n",
           md_table(pd.DataFrame(rows)), ""]
     never = [c for c in df["Country"].unique()
@@ -388,6 +500,7 @@ def track_b(quick):
           f"(SE {dm.cate_se:.3f}, p = {pstar(pz)}).\n",
           md_table(dm.by_group.assign(p=dm.by_group.p.map(pstar))), ""]
     L += gmm_section(df)
+    L += beta_convergence(df)
     rows = []
     d0 = pd.read_csv(LEVELS)
     grid = (("Luxembourg dropped, 1998+", ["Luxembourg"], 1998),
@@ -403,12 +516,18 @@ def track_b(quick):
                                 "Frontier_gap"], "Frontier_gap",
                                groups_apriori(d), lr)
             pz = 2 * (1 - stats.norm.cdf(abs(r.cate_slope / r.cate_se)))
+            ART.setdefault("dml", []).append(
+                {"Sample": name, "Learner": lr, "slope": r.cate_slope,
+                 "se": r.cate_se})
             gb = r.by_group.set_index("Group")["theta"]
             rows.append({"Sample": name, "Learner": lr, "θ": r.theta,
                          "θ p": pstar(r.p), "∂θ/∂gap": r.cate_slope,
                          "slope p": pstar(pz),
                          "θ Innovative": gb.get("Innovative", np.nan),
                          "θ Emerging": gb.get("Emerging", np.nan)})
+    ART.setdefault("tables", {})["tab_dml_sensitivity"] = (
+        pd.DataFrame(rows), "Double machine learning: sensitivity to sample "
+        "and learner", "tab:dml")
     L += ["**B12 · DML sensitivity (sample × learner):**\n",
           md_table(pd.DataFrame(rows)),
           "\nThe gap slope is negative in most cells but its significance "
@@ -420,6 +539,9 @@ def track_b(quick):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--quick", action="store_true")
+    ap.add_argument("--figures", action="store_true",
+                    help="also write results/figures (PNG, PDF) and "
+                         "results/tables (LaTeX)")
     ap.add_argument("-o", "--out", default=OUT)
     a = ap.parse_args(argv)
     t0 = time.time()
@@ -436,6 +558,9 @@ def main(argv=None):
     os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
     with open(a.out, "w", encoding="utf-8") as fh:
         fh.write("\n".join(parts))
+    if a.figures:
+        made = make_figures(os.path.dirname(os.path.abspath(a.out)))
+        print(f"figures: {', '.join(made)}")
     print(f"wrote {a.out} in {time.time() - t0:.0f}s")
 
 

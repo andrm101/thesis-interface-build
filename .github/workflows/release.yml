@@ -27,6 +27,7 @@ jobs:
           pyinstaller --noconfirm --clean --windowed
           --name EU-Innovation-Panel
           --add-data "panel_data.xlsx;."
+          --add-data "data/panel_levels.csv;data"
           --collect-submodules linearmodels
           --collect-submodules statsmodels
           --collect-submodules arch

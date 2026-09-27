@@ -1,0 +1,24 @@
+\begin{table}[htbp]
+\centering\small
+\caption{System GMM with R\&D endogenous: specification grid and diagnostics}
+\label{tab:gmm}
+\begin{tabular}{lrrrrrrrrrrr}
+\toprule
+R\&D measure & y lags & instr. lags & $\beta$ R\&D & p & long-run & LR SE & AR(2) p & Hansen p & \#Z & valid & preferred \\
+\midrule
+log\_RD\_stock\_per\_worker & 1 & 2-3 & 1.461 & 0.611 & 19.101 & 24.762 & 0.003 & 0.067 & 13 & -- &  \\
+log\_RD\_stock\_per\_worker & 1 & 3-4 & 2.967 & 0.128 & 27.613 & 10.017 & 0.003 & 0.318 & 13 & -- &  \\
+log\_RD\_stock\_per\_worker & 1 & 3-5 & 5.074 & 0.014$^{**}$ & 34.190 & 6.058 & 0.004 & 0.184 & 17 & -- &  \\
+log\_RD\_stock\_per\_worker & 2 & 2-3 & 4.970 & 0.019$^{**}$ & 46.723 & 4.848 & 0.062 & 0.081 & 13 & \checkmark & $\star$ \\
+log\_RD\_stock\_per\_worker & 2 & 3-4 & 4.420 & 0.323 & 38.534 & 21.618 & 0.230 & 0.096 & 13 & -- &  \\
+log\_RD\_stock\_per\_worker & 2 & 3-5 & 3.395 & 0.245 & 31.679 & 19.161 & 0.086 & 0.144 & 17 & -- &  \\
+RD\_pct\_GDP & 1 & 2-3 & 2.602 & 0.147 & 34.434 & 18.228 & 0.003 & 0.047 & 13 & -- &  \\
+RD\_pct\_GDP & 1 & 3-4 & 3.379 & 0.000$^{***}$ & 36.421 & 5.887 & 0.003 & 0.978 & 13 & -- &  \\
+RD\_pct\_GDP & 1 & 3-5 & 4.396 & 0.000$^{***}$ & 42.142 & 8.566 & 0.004 & 0.398 & 17 & -- &  \\
+RD\_pct\_GDP & 2 & 2-3 & 3.645 & 0.014$^{**}$ & 61.359 & 21.588 & 0.052 & 0.066 & 13 & \checkmark & $\star$ \\
+RD\_pct\_GDP & 2 & 3-4 & 3.836 & 0.000$^{***}$ & 39.125 & 9.495 & 0.011 & 0.956 & 13 & -- &  \\
+RD\_pct\_GDP & 2 & 3-5 & 4.514 & 0.000$^{***}$ & 41.898 & 11.737 & 0.012 & 0.501 & 17 & -- &  \\
+\bottomrule
+\end{tabular}
+\par\footnotesize Significance: $^{*}$ 10\%, $^{**}$ 5\%, $^{***}$ 1\%.
+\end{table}
