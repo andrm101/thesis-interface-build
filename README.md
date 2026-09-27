@@ -8,52 +8,28 @@
 > *An empirical investigation into the heterogeneous impact of R&D
 > investment on economic productivity across 25 EU member states over a
 > 25-year panel (1998–2023).*
->
-> **Shipped sample:** the `panel_data.xlsx` bundled here covers **23 countries, 2000–2023** (24 years, 552 rows) — Austria, Cyprus, and Ireland from the thesis's original EU-25/1998 scope are not present in this shipped subsample.
 
-An interactive desktop application (Tkinter + matplotlib) that reproduces
-the empirical workflow of the thesis end-to-end. It loads a World-Bank
-panel of EU economies, lets you build and estimate an **augmented
-Solow model** enriched with R&D and patent indicators, runs a **K-Means
-typology** to separate Innovative leaders from Emerging adopters, and
-then estimates **panel FE / RE** models inside each cluster — validating
-the specification with the **Hausman test** and confirming stationarity
-with **ADF / PP / Im-Pesaran-Shin** unit-root tests.
+An interactive desktop application (Tkinter + matplotlib) and a headless
+reproduction script for the thesis's empirical work. It covers the original
+workflow — **augmented Solow** panel models, a **K-Means** typology of
+Innovative leaders vs. Emerging adopters, **FE / RE** with **Hausman**, and
+**ADF / PP / IPS** unit roots — and extends it with data auditing,
+convergence clubs, second-generation panel tests, leakage-safe machine
+learning and **causal designs** (local projections, staggered event study,
+synthetic control, double machine learning).
 
 ---
 
-## Thesis in one paragraph
+## Contents
 
-The study extends the Solow-Swan growth framework with R&D expenditure
-(GERD) and patent activity as innovation proxies. K-Means clustering
-partitions the 25 EU economies into two structurally distinct
-typologies — Nordic / Central-European innovation leaders and
-Eastern / Southern emerging adopters. Panel fixed-effects and
-random-effects models are estimated separately within each cluster, with
-Hausman tests guiding the specification choice. The main finding
-resolves the **GERD paradox**: an aggregate negative relationship
-between R&D spending and productivity disappears once the sample is
-split, revealing strong positive effects in innovator economies that
-were masked by the low absorptive capacity of emerging ones. **Savings
-rate** is the most robust productivity driver across all specifications,
-and **conditional β-convergence** is confirmed in both clusters through
-significantly negative initial-GDP coefficients.
+1. [Quick start](#quick-start)
+2. [Methodology](#methodology) — the pipeline, the two data tracks, and how to reach every result
+3. [What reproduces — and what does not](#what-reproduces--and-what-does-not)
+4. [Tab reference](#tab-reference)
+5. [Data](#data) — rebuilding the panel, audit, schema, sources
+6. [Project layout](#project-layout) · [Development](#development) · [Credits](#credits--licence)
 
 ---
-
-## Architecture
-
-```mermaid
-flowchart TD
-    WB["World Bank panel<br/>23 EU countries, 2000-2023"] --> Load["main.py — panel_data.xlsx load"]
-    Load --> Solow["Augmented Solow model<br/>+ R&D / patent indicators"]
-    Solow --> KMeans["K-Means typology<br/>(Innovative leaders / Emerging adopters)"]
-    KMeans --> FERE["Panel FE / RE per cluster"]
-    FERE --> Hausman["Hausman test"]
-    FERE --> UnitRoot["ADF / PP / Im-Pesaran-Shin"]
-    Hausman --> UI["Tkinter + matplotlib<br/>desktop interface (tabs/)"]
-    UnitRoot --> UI
-```
 
 ## Quick start
 
@@ -68,253 +44,237 @@ git clone https://github.com/andrm101/thesis-interface-build.git
 cd thesis-interface-build
 pip install -r requirements.txt
 
-python main.py                    # opens with the bundled panel_data.xlsx loaded
-python main.py my_panel.csv       # or start with your own panel
+python main.py                        # GUI, thesis panel (Track A) loaded
+python main.py data/panel_levels.csv  # GUI, rebuilt level panel (Track B)
+python reproduce.py                   # every headline result → results/RESULTS.md
 ```
 
-On Linux, Tk comes from the system package manager (`sudo apt install python3-tk`).
-
-On Windows the app opens maximised and applies per-monitor DPI
-awareness. A dark "Palantir" palette is the default; toggle to the
-light "Claude" palette from the top-right corner for paper-ready
-screenshots.
+On Linux, Tk comes from the system package manager (`sudo apt install
+python3-tk`). A dark palette is the default; toggle the light palette from
+the top-right corner for paper-ready screenshots.
 
 ---
 
-## How to run the analysis for thesis-matching results
+## Methodology
 
-The interface is organised as a linear 14-tab pipeline. Following the
-tabs top-to-bottom reproduces the empirical workflow of the thesis.
+### Pipeline
 
-### 1 · Data
-1. The bundled `panel_data.xlsx` (552 rows × 16 cols, long-form
-   country × year) is loaded automatically at startup. Use **Browse…**
-   to switch to another file.
-2. Leave the year range at **2000 – 2023**.
-3. Click **EU-25** (or **Innovative** / **Emerging** if you already want
-   to focus on one cluster).
-4. Hit **Apply Filters**. The status bar should read *"528 obs · 22
-   countries · z-screen: excluded Luxembourg"*.
-   The **Z-score Outlier Screen** panel is enforced by default: countries
-   whose *mean* on a model variable lies beyond |z| > 3 of the
-   cross-country distribution are dropped. On the shipped data this
-   removes only **Luxembourg** (Human Capital Proxy z ≈ +3.3, Savings
-   z ≈ +3.5, Patents per capita z ≈ +3.1). Options: threshold, classic vs.
-   robust (median/MAD) z, country vs. observation (within-country) level,
-   and NaN / winsorize / drop for flagged cells. **Screen Report…** shows
-   the flags and a z-score heatmap. Observation-level flags cluster in
-   2009 and 2020 — genuine shocks — so the default screens countries only.
-5. Optional but recommended: click **Panel Structure Report** — it
-   prints whether the panel is balanced and a per-variable missingness
-   table. Expect a balanced 22 × 24 = 528-cell grid.
-6. In **Data Transformation Tools**, pre-build:
-   - `Y by L → Log-Level` (for productivity).
-   - `PIB towards research → Log-Level`.
-   - `Patents per capita → Growth Rate (%)` if you want a "patent
-     intensity" flow variable.
+```mermaid
+flowchart TD
+    RAW["Raw workbook<br/>World Bank WDI + Eurostat<br/>(data/raw, kept local)"] -->|build_panel.py<br/>audit corrections| B["Track B<br/>data/panel_levels.csv<br/>26 countries, levels + indices"]
+    A["Track A<br/>panel_data.xlsx<br/>thesis panel, growth indices"]
+    A --> S["1 · Outlier screen<br/>z-score, Tab 1"]
+    B --> S
+    S --> E["2 · EDA & tests<br/>Tab 2"]
+    E --> T["3 · Typology<br/>K-Means (Tab 5) ·<br/>Phillips-Sul clubs (Tab 4)"]
+    T --> M["4 · Estimation<br/>FE/RE + Hausman (Tab 3),<br/>by cluster (Tab 8)"]
+    M --> U["5 · Time-series properties<br/>ADF/PP/IPS/CIPS (Tab 10),<br/>Granger & D-H (Tab 11)"]
+    U --> C["6 · Causal designs<br/>frontier FE · LP · event study ·<br/>SC · DML (Tab 14)"]
+    C --> P["7 · Scenarios<br/>causal projections (Tab 7)"]
+    M -.-> ML["ML benchmark<br/>grouped CV (Tab 6)"]
+    C --> R["reproduce.py →<br/>results/RESULTS.md"]
+    M --> R
+    T --> R
+```
 
-### 2 · Statistics  *(exploratory data analysis)*
-Pick a **Variable / X**, an **Outcome Y**, and the **Groups** (a-priori
-Innovative/Emerging, or the K-Means clusters from Tab 5).
+### The two data tracks
 
-**Tests** (▶ *Run All Tests* runs every family; p-values carry
-Benjamini-Hochberg FDR adjustments — see `eda.py`):
-summary · normality (Shapiro-Wilk, Jarque-Bera, D'Agostino) · group
-differences (Welch, Mann-Whitney, KS, Levene, Cohen's d) · country
-heterogeneity (ANOVA, Kruskal-Wallis, η²) · trends (Mann-Kendall) ·
-pooled / between / within correlations · Pesaran CD · between/within
-variance decomposition · Chow structural breaks (2004, 2008, 2009, 2013,
-2020) · lead-lag correlations.
+Both datasets are kept, because they answer different questions.
 
-**Figures**: correlation heatmap · distributions by group · Q-Q plots ·
-trajectories with group median ± IQR · box plots by country · country ×
-year heatmap · z-score map · scatter matrix · X-vs-Y by group (pooled and
-within) · lead-lag correlogram · between/within variance bars.
-
-### 3 · Panel FE / RE  *(core estimation)*
-1. **Dependent variable**: `Y by L` (output per worker).
-2. **Regressors** (default pre-selected): Savings Percentage, Human
-   Capital Proxy, Labor in research, PIB towards research, Patents per
-   capita, Labor not in research.
-3. **Model**: start with *Fixed Effects (Entity + Time)* — the thesis'
-   preferred within estimator.
-4. Keep **Log-transform** ON and **Clustered SE (entity)** ON.
-5. (Optional) set *Lag depth for regressors* to `1` and click **Build
-   Lag Variables** to reproduce the dynamic specification.
-6. Click **Run Model**. Cross-check with **Hausman Test (FE vs RE)** —
-   you should reject H₀ ⇒ prefer Fixed Effects.
-7. **Plot Significant Variables** renders the forest plot used in the
-   thesis' Figure 4.
-
-Repeat separately for the **Innovative** and **Emerging** filters
-(set in Tab 1) to reproduce the cluster-wise results that resolve the
-GERD paradox.
-
-### 4 · Convergence
-Run a cross-sectional OLS of average productivity growth on
-**initial log-GDP** to test **β-convergence**. Do it once for each
-cluster — both slopes should be negative and significant, confirming
-conditional convergence.
-
-**Phillips-Sul convergence clubs** (Phillips & Sul 2007, 2009; club
-merging per Schnurbus et al. 2017): *log-t Test (all)* tests whether the
-whole sample converges; *Club Clustering* finds the clubs that do, plots
-their relative transition paths, and *Use Clubs as Clusters* feeds them to
-the Tab 2 group tests (and Tab 8 when there are exactly two clubs). For the
-shipped growth-index data keep *Chain growth index* ticked — clubs then
-describe cumulative growth since 2000 rather than productivity levels.
-
-### 5 · Clustering  *(the typology)*
-1. Keep the default variables selected: **PIB towards research**,
-   **Labor in research**, **Patents per capita**, **Human Capital
-   Proxy**.
-2. **K = 2**.
-3. Click **Elbow Plot** — the annotated bend at K = 2 confirms the
-   choice.
-4. Click **Run Clustering**. The text panel lists cluster membership
-   and auto-labels the high-R&D group as **Innovative** and the other
-   as **Emerging**.
-5. Click **PCA Biplot** for the two-dimensional visualisation with
-   loading arrows — this mirrors the thesis' country-typology figure.
-
-### 6 · ML Models
-Train supervised models (Random Forest, Gradient Boosting, Ridge, Lasso) on
-the productivity target. **CV scheme** defaults to *Grouped by country*
-(whole countries held out, scaling fitted inside each fold); *Forward-
-chaining* trains on earlier years and tests on later ones. The table also
-prints the leaky random-K-fold R² so the gap is visible. The best model is
-chosen by CV R². Note that `TFP Growth Rate` and `A` are near-mechanical
-predictors of `Y by L` (growth accounting) — untick them for a substantive
-benchmark.
-
-*Held-out Importance* ranks features by the drop in **held-out** R² when each
-is shuffled inside the test fold (whole countries for the grouped scheme),
-so it shows what generalises rather than what fits the training data.
-
-### 7 · Scenarios
-Counterfactuals: move a country's R&D intensity to the cluster mean and
-re-predict productivity. Quantifies the absorptive-capacity channel
-behind the GERD paradox.
-
-**Causal Scenario** projects a country's output per worker under a sustained
-R&D change using causal estimates (state-dependent local projections and
-the DML effect at the country's frontier gap), with 95 % bands, against a
-transparent trend baseline — use it instead of the ML simulator for
-claims about policy effects.
-
-### 8 · Compare
-Side-by-side regression table (Pooled / FE / RE / FE+Time) — the
-Table-2 equivalent of the thesis.
-
-Works with any number of clusters (K-Means or Phillips-Sul clubs) and adds
-a Wald test of coefficient equality across clusters (χ²(K−1)).
-
-### 9 · Diagnostics
-Residual normality, heteroskedasticity (White test), serial correlation,
-and cross-sectional dependence checks.
-
-### 10 · Unit Roots
-**ADF**, **PP**, and **Im-Pesaran-Shin** panel unit-root tests. Reject
-the null of a unit root for log-differenced variables before using them
-in the panel specification.
-
-**CIPS (Pesaran 2007)** is robust to the cross-sectional dependence that
-the Tab 2 CD test finds; critical values are simulated for the panel's
-own N and T. *CIPS — All* screens every variable.
-
-### 11 · VAR / IRF
-Vector autoregression and impulse-response functions — R&D shock → TFP
-and Output responses. Supplementary to the main specification.
-
-**Panel Granger (D-H)**: Dumitrescu-Hurlin (2012) test with heterogeneous
-coefficients for every ordered pair of selected variables, in levels and
-first differences, K = 1…3.
-
-### 12 · Advanced
-Non-linear and interaction specifications (R&D × Human Capital, etc.).
-
-### 13 · Report
-Export any tab's text panel to `.txt` and summarise model fits in a
-single consolidated report.
-
-### 14 · Causal  *(needs level variables — click “Load level panel”)*
-Quasi-experimental and causal-ML designs (`causal.py`):
-
-| Button | Design | Question |
+| | **Track A — thesis panel** | **Track B — rebuilt level panel** |
 |---|---|---|
-| Frontier Regression | Two-way FE growth regression with R&D × distance-to-frontier (Griffith et al. 2004; Acemoglu, Aghion & Zilibotti 2006) | Does R&D pay more near or far from the frontier? |
-| Local Projections | Jordà (2005) panel LPs, linear or state-dependent (catch-up vs. near-frontier, Emerging vs. Innovative) | How does productivity respond 0-H years after an R&D change? |
-| Event Study | Callaway & Sant'Anna (2021) staggered DiD, never- or not-yet-treated controls, optional pre-trend detrending, country bootstrap | Effect of EU accession or custom policy events (`Poland:2016, …`) |
-| Synthetic Control | Abadie et al. (2010), optional demeaning, in-space placebo p-value | Single-country policy episode |
-| Double ML | Partially linear DML (Chernozhukov et al. 2018), cross-fitted by country, CATE in frontier gap, by group | Average and heterogeneous effect of R&D intensity on growth |
+| File | `panel_data.xlsx` (default at startup) | `data/panel_levels.csv` (`python build_panel.py`) |
+| Coverage | 23 countries, 2000-2023 | 26 countries (+ Austria, Cyprus, Slovakia), 1998-2023 |
+| Variables | Year-on-year growth indices (prev. year = 100) + two levels | Levels (R&D % GDP, researchers per 1,000 employed, patents per million, tertiary share, output per worker, frontier gap, …) **and** the thesis-named indices rebuilt from corrected inputs |
+| Known issues | `Human Capital Proxy` built from misaligned rows; Italy 2011 `Labor` typo; `Savings Percentage` not reproducible from the raw data — see [`docs/DATA_AUDIT.md`](docs/DATA_AUDIT.md) | Corrected |
+| Use it for | Reproducing the thesis exactly as submitted | Corrected results, the typology, convergence clubs in levels, and every causal design |
+
+### Step by step
+
+Each step names the GUI location and the module that implements it, so the
+same analysis can be run interactively or scripted.
+
+**0 · Build the level panel** (Track B only) — `python build_panel.py`
+parses each wide country × year block of the raw workbook by ISO code,
+reads tertiary attainment from the correctly aligned sheet, fixes the
+Czechia/Estonia researcher units, and derives intensities, log levels, a
+frontier gap (distance to the mean of the top three countries' log output
+per worker) and growth indices. `tests/test_build_panel.py` locks every
+correction in place.
+
+**1 · Outlier screen** — *Tab 1 → Z-score Outlier Screen* (`outliers.py`).
+Enforced on *Apply Filters*: a country is dropped when its **mean** of a
+model variable lies beyond |z| > 3 of the cross-country distribution.
+Observation-level screening (within-country spikes) is available but off by
+default, because its flags concentrate in 2009 and 2020 — genuine shocks.
+Track A drops Luxembourg; Track B drops Luxembourg (patents per capita) and
+Malta (tertiary-growth volatility).
+
+**2 · Exploratory analysis** — *Tab 2* (`eda.py`). Ten test families —
+normality, group differences, country heterogeneity, trends, pooled /
+between / within correlations, Pesaran CD, variance decomposition, Chow
+breaks, lead-lag — with Benjamini-Hochberg FDR correction wherever a test
+runs over many variables, plus eleven figure types.
+
+**3 · Typology**
+- *Tab 5 → K = 2 → Run Clustering* on country means of the R&D variables.
+  On Track B the tab defaults to the **level** variables (R&D % GDP,
+  researchers per 1,000, patents per million, tertiary share).
+- *Tab 4 → Club Clustering* (`clubs.py`): Phillips-Sul log-t test (HP
+  trend, λ = 400; r = 0.3; HAC SEs), max-t core formation, sieve c* = 0 and
+  Schnurbus et al. (2017) club merging. Tick *Chain growth index* for
+  Track A; untick it and pick `Y_per_worker` for level clubs on Track B.
+  *Use Clubs as Clusters* sends the clubs to Tabs 2 and 8.
+
+**4 · Estimation** — *Tab 3*: log-transform on, *Fixed Effects (Entity +
+Time)*, clustered SEs, then *Hausman Test*. Repeat per group via the Tab 1
+**Innovative** / **Emerging** buttons, or run all clusters at once in
+*Tab 8* (any number of clusters, with a χ²(K−1) test of coefficient
+equality across clusters). For timing, set *Lag depth* and *Build Lag
+Variables*.
+
+**5 · Time-series properties** — *Tab 10* ADF / PP / KPSS / IPS and
+**CIPS** (`panel_tests.py`; robust to common shocks, critical values
+simulated for the panel's own N and T). *Tab 11* VAR / IRF / FEVD and
+**Dumitrescu-Hurlin** panel Granger causality (levels and differences).
+
+**6 · Causal designs** — *Tab 14* (`causal.py`), on Track B (*Load level
+panel*):
+
+| Design | Settings used for the reported results |
+|---|---|
+| Frontier FE regression | growth = Δ100·log `Y_per_worker`; R&D, gap and R&D × gap lagged one year; controls savings rate, tertiary share; two-way FE; clustered SE |
+| Local projections | shock Δ`RD_pct_GDP`; h = 0…6; 2 lags; state = frontier gap above its median |
+| Event study | EU accession 2004/2007/2013; never-treated **and** not-yet-treated controls, each with and without cohort pre-trend removal; country bootstrap |
+| Synthetic control | Poland, 2004; donors = never-accession countries; pre-period demeaned; in-space placebos |
+| Double ML | treatment `RD_pct_GDP`(t−1); controls lagged + country means; Random Forest and Lasso learners; CATE in frontier gap; by group |
+
+**7 · Scenarios** — *Tab 7 → Causal Scenario* projects a country's output
+per worker under a sustained R&D change from the Tab 14 estimates (not from
+an ML fit), with 95 % bands against a trend baseline.
+
+**ML benchmark** — *Tab 6* (`ml_eval.py`): cross-validation holds out whole
+countries (or later years); the leaky random-K-fold R² is shown beside it;
+*Held-out Importance* ranks features by out-of-sample value.
+
+### Reaching every result
+
+`python reproduce.py` regenerates all of the following into
+[`results/RESULTS.md`](results/RESULTS.md) (≈ 2 minutes; `--quick` for a
+fast pass). IDs refer to sections of that file.
+
+| ID | Result | Track | In the GUI |
+|---|---|---|---|
+| A1 / B1 | Outlier screen | A / B | Tab 1 → Apply Filters (status bar), *Screen Report…* |
+| A2 | Panel FE + Hausman | A | Tab 3 → Run Model, Hausman Test |
+| A3 / B3 | GERD paradox by group | A / B | Tab 1 Innovative / Emerging → Tab 3 (or Tab 8) |
+| A3b | Timing: R&D lagged 0-4 years | A | Tab 3 → Lag depth → Build Lag Variables |
+| A4 / B2 | K-Means typology | A / B | Tab 5 → K = 2 → Run Clustering |
+| A5 / B4 | Phillips-Sul clubs | A / B | Tab 4 → Club Clustering |
+| A6 | ML, honest vs leaky CV | A | Tab 6 → Train & Evaluate |
+| B5 | CIPS unit roots | B | Tab 10 → CIPS / CIPS — All |
+| B6 | Dumitrescu-Hurlin causality | B | Tab 11 → select variables → Panel Granger (D-H) |
+| B7 | Distance-to-frontier regression | B | Tab 14 → Frontier Regression |
+| B8 | Local projections | B | Tab 14 → Local Projections |
+| B9 | EU-accession event study | B | Tab 14 → Event Study (toggle controls / detrend) |
+| B10 | Synthetic control | B | Tab 14 → Synthetic Control |
+| B11 / B12 | Double ML and its sensitivity | B | Tab 14 → Double ML (vary learner; Tab 1 country filter) |
+| — | Causal scenario | B | Tab 7 → Causal Scenario |
 
 ---
 
-## Matching the thesis' reported results
+## What reproduces — and what does not
 
-| Thesis finding | Where to reproduce | Expected sign |
+Summary of `results/RESULTS.md`. Significance: \* 10 %, \*\* 5 %, \*\*\* 1 %.
+
+| Thesis claim | Evidence here | Verdict |
 |---|---|---|
-| K-Means identifies 2 typologies | Tab 5 · Clustering (K=2) | Innovative / Emerging split matching `constants.INNOVATIVE_CLUSTER` and `EMERGING_CLUSTER`. |
-| GERD paradox: negative aggregate, positive in leaders | Tab 3 · Panel FE with whole EU-25 then Innovative only | EU-25 coef on R&D ≤ 0; Innovative coef > 0 at 5 %. |
-| Savings rate is the strongest driver | Tab 3 · every FE/RE run | Positive and *** across all specs. |
-| Conditional convergence | Tab 4 · Convergence (per cluster) | Negative, significant β on initial log-GDP. |
-| Hausman prefers FE | Tab 3 · Hausman button | χ² p < 0.05 ⇒ reject RE. |
-| Variables are I(1) in levels, I(0) in log-diffs | Tab 10 · Unit Roots | ADF/PP/IPS reject stationarity on levels, fail to reject on log-differences. |
+| Two typologies: Nordic / Central-European leaders vs. Eastern / Southern adopters | Track A K-Means (growth indices): 77 % agreement, silhouette 0.24. **Track B K-Means on R&D levels: 100 % agreement**, silhouette 0.36 (B2) | ✅ with level data |
+| Savings rate is the most robust driver | Track A: positive in all samples (\*\*\*). Track B: positive, weaker (\*\* overall, n.s. for Innovative) | ✅ Track A, ◐ Track B |
+| GERD paradox: negative aggregate, **positive in leaders** | Same-year R&D growth is **negative** for the Innovative group in every FE variant, on both tracks (A3, B3). Lagged 1-3 years it turns positive (A3b) — a **J-curve**. DML finds a positive Innovative effect in 7 of 8 specifications, not significant in the default one (B11, B12) | ✗ as stated; ◐ with lags |
+| R&D effect declines with distance to the frontier | DML CATE slope negative in 7/8 cells, significant at 5 % in 6/8, but not in the default sample with the Random Forest learner (B12); frontier-FE interaction n.s. (B7) | ◐ suggestive |
+| Hausman prefers FE | χ²(6) = 10.7, p = 0.099 (A2) | ◐ at 10 % only |
+| Conditional β-convergence | Frontier gap strongly positive in growth regressions (B7); log-t rejects global convergence but finds clubs (A5, B4) | ✅ conditional / club |
+| Levels I(1), growth rates I(0) | CIPS: log output per worker unit root; growth index stationary (B5) | ✅ |
+| R&D drives productivity | Dumitrescu-Hurlin: **productivity Granger-causes R&D**, not the reverse (B6); local projections n.s. (B8) | ✗ — reverse causality |
+| EU accession accelerated catch-up | +14 % naive ATT, but strong pre-trends; −4.5 % to +3.4 % after adjustment (B9) | ✗ not identified |
+
+The honest one-line summary: **the typology and the club structure hold;
+the GERD-paradox reversal holds only with lags; and productivity leads R&D
+rather than the other way round.**
 
 ---
 
-## Rebuilding the panel from raw data
+## Tab reference
+
+| Tab | What it does |
+|---|---|
+| **1 · Data** | Load, filter by year / country group (EU-25, Innovative, Emerging, West, East), z-score outlier screen, panel-structure report, transformations (growth, log, differences), HP filter, rolling statistics. |
+| **2 · Statistics** | Ten test families with FDR correction (*Run All Tests*) and eleven EDA figures; groups = a-priori clusters or Tab 5 / Tab 4 clusters. |
+| **3 · Panel FE / RE** | Pooled / FE / FE + time / RE / IV-FD; clustered SEs; Hausman; lag builder; significance forest plot. |
+| **4 · Convergence** | Absolute and conditional β-convergence, σ-convergence, Phillips-Sul log-t test and convergence clubs. |
+| **5 · Clustering** | K-Means with elbow plot and PCA biplot; defaults to level R&D variables when present. |
+| **6 · ML Models** | RF / GB / Ridge / Lasso with grouped or forward-chaining CV, leaky-CV reference, held-out permutation importance. |
+| **7 · Scenarios** | Thesis ML simulator, J-curve simulator, and the **Causal Scenario** projection. |
+| **8 · Compare** | Cluster-wise regressions for any number of clusters, forest plot, coefficient-equality test. |
+| **9 · Diagnostics** | Residual normality, White heteroskedasticity, serial correlation, CUSUM. |
+| **10 · Unit Roots** | ADF, PP, KPSS, IPS, **CIPS**, Engle-Granger, Johansen. |
+| **11 · VAR / IRF** | Lag selection, VAR, IRF / cumulative IRF, FEVD, forecasts, Granger, **Dumitrescu-Hurlin**, VECM, local-projection IRFs. |
+| **12 · Advanced** | Interactions, Driscoll-Kraay SEs, mean-group, quantile and threshold regressions. |
+| **13 · Report** | HTML report, figure export, text export. |
+| **14 · Causal** | Frontier FE, local projections, staggered event study, synthetic control, double ML. |
+
+The 18 literature-based hypotheses and the tab that tests each are listed in
+[`docs/HYPOTHESES.md`](docs/HYPOTHESES.md).
+
+---
+
+## Data
+
+### Rebuilding the level panel
 
 ```bash
-python build_panel.py            # data/raw/BD_Licenta.xlsx → data/panel_levels.csv
-python main.py data/panel_levels.csv
+python build_panel.py                       # data/raw/BD_Licenta.xlsx → data/panel_levels.csv
+python build_panel.py path/to/raw.xlsx -o out.csv
 ```
 
-`build_panel.py` reads the World Bank / Eurostat raw workbook and writes a
-26-country, 1998-2023 panel with **level** variables (R&D % GDP,
-researchers per 1,000 employed, patents per million, tertiary share,
-output per worker, distance to the frontier, …) plus the thesis-named
-growth-index columns rebuilt from corrected inputs. The audit that
-motivated it — including a row shift that corrupted `Human Capital Proxy`
-— is in [`docs/DATA_AUDIT.md`](docs/DATA_AUDIT.md). On the level R&D
-variables, K-Means (K = 2) recovers the thesis's Innovative/Emerging
-typology exactly.
+The raw workbook is kept **out of the public repository** (`data/raw/` is
+git-ignored); the rebuilt `data/panel_levels.csv` is committed, so every
+Track B result reproduces without it. `tests/test_build_panel.py` skips when
+the raw file is absent.
 
-## Extending the data & hypotheses
+### Data audit
 
-- [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md) — open sources (Eurostat,
-  OECD, Penn World Table, AMECO, EU Cohesion, CORDIS, WGI) for R&D
-  intensity levels, fiscal-policy variables and R&D tax-incentive dates.
-- [`docs/HYPOTHESES.md`](docs/HYPOTHESES.md) — 18 literature-based
-  hypotheses mapped to the tab that tests them, or the data they need.
+[`docs/DATA_AUDIT.md`](docs/DATA_AUDIT.md) documents the cell-by-cell
+comparison of `panel_data.xlsx` with the raw workbook: how each thesis
+column was built, the misaligned human-capital rows, the researcher unit
+slip, the Italy 2011 typo, and the non-reproducible savings series.
 
-> **Note on the shipped data:** most columns are year-on-year growth
-> indices (previous year = 100), not levels — see `DATA_SOURCES.md`.
+### Schema
 
----
+Any long-form panel with `Country` and `Year` loads; numeric columns appear
+in every dropdown. The thesis columns are:
 
-## Expected dataset schema
+| Column | Meaning (verified against raw data) |
+|---|---|
+| `Y by L` | GDP per capita (const. 2015 US$), growth index — per capita, not per worker |
+| `PIB towards research` | R&D expenditure % GDP, growth index |
+| `Patents per capita` | resident patent applications per capita, growth index |
+| `Human Capital Proxy` | tertiary attainment, growth index (misaligned in Track A) |
+| `Labor in research` | researchers / population (level) |
+| `Savings Percentage` | savings share (Track A: unverified; Track B: gross savings / GDP) |
+| `Labor`, `Population` | employment and population, growth indices |
+| `TFP Growth Rate`, `A` | TFP measures — near-mechanical predictors of `Y by L` |
 
-The app was built around the shipped `panel_data.xlsx`, but it accepts
-any long-form panel with at least the columns below:
+Track B adds the level variables listed in `build_panel.py`.
 
-| Column | Role | Notes |
-|---|---|---|
-| `Country` | Entity | String, one per country. |
-| `Year` | Time | Integer. |
-| `Y by L` | Dependent (productivity) | Output per worker. |
-| `Savings Percentage` | Key driver | Gross-savings share of GDP. |
-| `Human Capital Proxy` | Key driver | Any schooling/education index. |
-| `Labor in research` | R&D labour | Researchers, FTE. |
-| `Labor not in research` | Residual labour | Complement to the above. |
-| `PIB towards research` | GERD intensity | R&D as % of GDP. |
-| `Patents per capita` | Innovation output | Patent applications normalised. |
-| `Patents`, `Patents per hour` | Optional extra innovation proxies | |
-| `Population`, `Labor` | Scale variables | |
-| `TFP Growth Rate`, `A` | Total factor productivity | Computed exogenously. |
+### Extending the data
 
-Other columns are tolerated — the app infers numeric variables
-automatically and offers them in every dropdown.
+[`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md) lists open sources for the
+variables still missing — government R&D budgets (GBARD), OECD R&D
+tax-incentive rates and introduction dates, AMECO fiscal balances, EU
+Cohesion and Horizon funding, governance indicators. The Tab 14 designs
+take them directly (e.g. custom events `Poland:2016, Slovakia:2015`).
 
 ---
 
@@ -322,57 +282,27 @@ automatically and offers them in every dropdown.
 
 ```
 thesis-interface-build/
-├── main.py                  # entry point — run this
-├── app.py                   # ThesisApp shell (multiple-inheritance of mixins)
-├── theme.py                 # palettes, ttk styles, matplotlib defaults
-├── constants.py             # EU groupings + thesis clusters + helpers
-├── helpers.py               # shared UI + plot embedding helpers
-├── outliers.py              # z-score outlier screen (country / observation)
-├── eda.py                   # EDA test battery (normality, groups, CD, breaks…)
-├── clubs.py                 # Phillips-Sul log-t test + convergence clubs
-├── build_panel.py           # raw workbook → data/panel_levels.csv (levels)
-├── ml_eval.py               # leakage-safe CV (grouped / forward-chaining)
-├── causal.py                # frontier FE, local projections, event study, SC, DML
-├── panel_tests.py           # CIPS unit root, Dumitrescu-Hurlin Granger
-├── panel_data.xlsx          # shipped sample: 23 countries, 2000-2023
-├── tabs/
-│   ├── tab_data.py          # 1 · Data         — loading, filtering, transforms
-│   ├── tab_stats.py         # 2 · Statistics   — EDA tests + figures
-│   ├── tab_panel.py         # 3 · Panel FE/RE  — core estimation + Hausman
-│   ├── tab_convergence.py   # 4 · Convergence  — cross-sectional β-convergence
-│   ├── tab_clustering.py    # 5 · Clustering   — K-Means typology + PCA biplot
-│   ├── tab_ml.py            # 6 · ML Models    — RF/GB/XGB benchmarks
-│   ├── tab_scenarios.py     # 7 · Scenarios    — counterfactual R&D shocks
-│   ├── tab_compare.py       # 8 · Compare      — side-by-side regression table
-│   ├── tab_diagnostics.py   # 9 · Diagnostics  — White, BG, CD tests
-│   ├── tab_unitroot.py      # 10 · Unit Roots  — ADF, PP, Im-Pesaran-Shin
-│   ├── tab_var.py           # 11 · VAR / IRF   — impulse responses
-│   ├── tab_advanced.py      # 12 · Advanced    — interactions, non-linearities
-│   ├── tab_report.py        # 13 · Report      — consolidated export
-│   └── tab_causal.py        # 14 · Causal      — LP, event study, SC, DML
-├── data/raw/BD_Licenta.xlsx # raw WDI + Eurostat workbook
-├── data/panel_levels.csv    # rebuilt panel (python build_panel.py)
-├── docs/                    # data audit, data sources, hypotheses
-├── tests/                   # pytest: dataset checks + headless GUI smoke test
-├── .github/workflows/       # CI (lint + tests) and Windows release build
-├── requirements.txt         # runtime dependencies
-├── requirements-dev.txt     # + pytest, ruff
-└── README.md                # this file
+├── main.py                  # GUI entry point
+├── reproduce.py             # headless reproduction → results/RESULTS.md
+├── build_panel.py           # raw workbook → data/panel_levels.csv
+├── app.py                   # ThesisApp shell (mixins)
+├── theme.py · constants.py · helpers.py
+├── outliers.py              # z-score screen
+├── eda.py                   # EDA test battery
+├── clubs.py                 # Phillips-Sul clubs
+├── ml_eval.py               # leakage-safe CV, held-out importance
+├── panel_tests.py           # CIPS, Dumitrescu-Hurlin
+├── causal.py                # frontier FE, LP, event study, SC, DML, scenarios
+├── panel_data.xlsx          # Track A: thesis panel
+├── data/
+│   ├── panel_levels.csv     # Track B: rebuilt level panel
+│   └── raw/                 # raw workbook (local, git-ignored)
+├── results/RESULTS.md       # output of reproduce.py
+├── tabs/                    # one mixin per GUI tab (1-14)
+├── docs/                    # DATA_AUDIT, DATA_SOURCES, HYPOTHESES
+├── tests/                   # pytest (data, modules, planted-effect recovery, GUI smoke)
+└── .github/workflows/       # CI and Windows release build
 ```
-
----
-
-## Methods checklist (from the thesis abstract)
-
-- [x] Augmented Solow model (GERD + patents)
-- [x] K-Means clustering (K = 2)
-- [x] Panel Fixed Effects / Random Effects
-- [x] Hausman specification test
-- [x] Unit root testing — ADF, PP, Im-Pesaran-Shin
-- [x] Cross-sectional OLS (β-convergence)
-- [x] White heteroscedasticity test
-
-Every one of the above is exposed as a button in the GUI.
 
 ---
 
@@ -381,12 +311,15 @@ Every one of the above is exposed as a button in the GUI.
 ```bash
 pip install -r requirements-dev.txt
 ruff check --select E9,F63,F7,F82 .   # syntax errors / undefined names
-python -m pytest                      # data checks + headless GUI smoke test
+python -m pytest                      # add `xvfb-run -a` on headless Linux
+python reproduce.py --quick           # end-to-end smoke run of every analysis
 ```
 
-The GUI smoke test needs a display; on a headless Linux box run it under
-`xvfb-run -a python -m pytest`. CI (`.github/workflows/ci.yml`) does exactly
-this on every push and pull request.
+The causal and convergence estimators are tested by **recovering planted
+effects** from synthetic data (known ATT, synthetic-control weights, LP
+responses, DML θ and CATE, CIPS / Dumitrescu-Hurlin size and power, two
+planted convergence clubs). CI runs lint and the full suite on Python 3.10
+and 3.12 for every push and pull request.
 
 ### Releasing a Windows build
 
@@ -396,13 +329,13 @@ git tag v1.1.0 && git push origin v1.1.0
 
 `.github/workflows/release.yml` builds the app with PyInstaller on a Windows
 runner, bundles `panel_data.xlsx`, and attaches
-`EU-Innovation-Panel-windows.zip` to a GitHub Release. You can also run the
-workflow manually from the **Actions** tab to get the zip as a build artifact.
+`EU-Innovation-Panel-windows.zip` to a GitHub Release (or run it manually
+from the **Actions** tab).
 
 ---
 
 ## Credits & licence
 
-Built as a companion tool for Andrei's master-thesis on R&D
-heterogeneity in EU growth. Released under the [MIT licence](LICENSE) —
-drop a link back to the repo if you build on it.
+Built as a companion tool for Andrei's thesis on R&D heterogeneity in EU
+growth. Released under the [MIT licence](LICENSE) — drop a link back to the
+repo if you build on it.
