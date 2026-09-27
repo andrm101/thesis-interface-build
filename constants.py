@@ -54,6 +54,13 @@ EMERGING_CLUSTER = [
 
 EU25 = sorted(set(INNOVATIVE_CLUSTER + EMERGING_CLUSTER))
 
+# ── Default exclusions ─────────────────────────────────────────────────────
+# Luxembourg is a structural outlier (tiny, finance-driven economy): with it
+# in the sample K-Means isolates it as a one-country cluster, which makes
+# cluster-wise panel estimation meaningless. It is deselected on load and by
+# every group shortcut; tick it manually in Tab 1 to bring it back.
+EXCLUDED_COUNTRIES = ['luxembourg']
+
 
 # ── Variable role detection (panel/econometric helpers) ────────────────────
 # Keywords used across tabs to auto-detect variables that play a specific

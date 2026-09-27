@@ -93,11 +93,13 @@ tabs top-to-bottom reproduces the empirical workflow of the thesis.
 2. Leave the year range at **2000 – 2023**.
 3. Click **EU-25** (or **Innovative** / **Emerging** if you already want
    to focus on one cluster).
-4. Hit **Apply Filters**. The status bar should read *"552 obs · 23
-   countries · 24 years"*.
+4. Hit **Apply Filters**. The status bar should read *"528 obs · 22
+   countries"*. **Luxembourg is excluded by default** — as a structural
+   outlier it otherwise forms a one-country K-Means cluster. Tick it in
+   the country list to bring it back (`constants.EXCLUDED_COUNTRIES`).
 5. Optional but recommended: click **Panel Structure Report** — it
    prints whether the panel is balanced and a per-variable missingness
-   table. Expect a balanced 23 × 24 = 552-cell grid.
+   table. Expect a balanced 22 × 24 = 528-cell grid.
 6. In **Data Transformation Tools**, pre-build:
    - `Y by L → Log-Level` (for productivity).
    - `PIB towards research → Log-Level`.

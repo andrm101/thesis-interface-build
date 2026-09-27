@@ -27,6 +27,7 @@ from statsmodels.tsa.filters.hp_filter import hpfilter
 
 import theme
 from constants import (
+    EXCLUDED_COUNTRIES,
     WESTERN_EU, EASTERN_EU,
     INNOVATIVE_CLUSTER, EMERGING_CLUSTER, EU25,
 )
@@ -230,7 +231,7 @@ class DataTabMixin:
                 self.country_lb.delete(0, tk.END)
                 for c in countries:
                     self.country_lb.insert(tk.END, c)
-                self.country_lb.select_set(0, tk.END)
+                self._sel_all()
             self._apply_filters()
             self.status_var.set(
                 f"Loaded: {len(df):,} rows · {len(df.columns)} columns")
@@ -279,13 +280,17 @@ class DataTabMixin:
                 f"{v:.3f}" if isinstance(v, float) else v for v in row])
 
     # ── Country selection helpers ─────────────────────────────────────────
-    def _sel_all(self):  self.country_lb.select_set(0, tk.END)
+    def _sel_all(self):  self._sel_group(None)
     def _sel_none(self): self.country_lb.selection_clear(0, tk.END)
 
     def _sel_group(self, group):
+        """Select countries in *group* (all if None), minus EXCLUDED_COUNTRIES."""
         self.country_lb.selection_clear(0, tk.END)
         for i in range(self.country_lb.size()):
-            if self.country_lb.get(i).lower() in group:
+            name = self.country_lb.get(i).lower()
+            if name in EXCLUDED_COUNTRIES:
+                continue
+            if group is None or name in group:
                 self.country_lb.select_set(i)
 
     def _sel_west(self):  self._sel_group(WESTERN_EU)
