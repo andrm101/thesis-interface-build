@@ -231,6 +231,23 @@ single consolidated report.
 
 ---
 
+## Rebuilding the panel from raw data
+
+```bash
+python build_panel.py            # data/raw/BD_Licenta.xlsx → data/panel_levels.csv
+python main.py data/panel_levels.csv
+```
+
+`build_panel.py` reads the World Bank / Eurostat raw workbook and writes a
+26-country, 1998-2023 panel with **level** variables (R&D % GDP,
+researchers per 1,000 employed, patents per million, tertiary share,
+output per worker, distance to the frontier, …) plus the thesis-named
+growth-index columns rebuilt from corrected inputs. The audit that
+motivated it — including a row shift that corrupted `Human Capital Proxy`
+— is in [`docs/DATA_AUDIT.md`](docs/DATA_AUDIT.md). On the level R&D
+variables, K-Means (K = 2) recovers the thesis's Innovative/Emerging
+typology exactly.
+
 ## Extending the data & hypotheses
 
 - [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md) — open sources (Eurostat,
@@ -281,6 +298,7 @@ thesis-interface-build/
 ├── outliers.py              # z-score outlier screen (country / observation)
 ├── eda.py                   # EDA test battery (normality, groups, CD, breaks…)
 ├── clubs.py                 # Phillips-Sul log-t test + convergence clubs
+├── build_panel.py           # raw workbook → data/panel_levels.csv (levels)
 ├── ml_eval.py               # leakage-safe CV (grouped / forward-chaining)
 ├── panel_data.xlsx          # shipped sample: 23 countries, 2000-2023
 ├── tabs/
@@ -297,7 +315,9 @@ thesis-interface-build/
 │   ├── tab_var.py           # 11 · VAR / IRF   — impulse responses
 │   ├── tab_advanced.py      # 12 · Advanced    — interactions, non-linearities
 │   └── tab_report.py        # 13 · Report      — consolidated export
-├── docs/                    # data-source catalogue + hypothesis catalogue
+├── data/raw/BD_Licenta.xlsx # raw WDI + Eurostat workbook
+├── data/panel_levels.csv    # rebuilt panel (python build_panel.py)
+├── docs/                    # data audit, data sources, hypotheses
 ├── tests/                   # pytest: dataset checks + headless GUI smoke test
 ├── .github/workflows/       # CI (lint + tests) and Windows release build
 ├── requirements.txt         # runtime dependencies

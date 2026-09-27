@@ -1,5 +1,10 @@
 # Candidate data sources
 
+> **Update:** the raw workbook is now in `data/raw/` and `build_panel.py`
+> produces level versions of GERD % GDP, researchers, patents, tertiary
+> attainment and output per worker (see `DATA_AUDIT.md`). The sources below
+> remain the route to fiscal-policy and R&D-tax-incentive variables.
+
 Open, citable sources that would extend `panel_data.xlsx`. The shipped panel
 is almost entirely **year-on-year growth indices (previous year = 100)** —
 `Y by L`, `PIB towards research`, `Human Capital Proxy`, `Patents*`,
