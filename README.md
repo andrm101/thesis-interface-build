@@ -23,11 +23,17 @@ synthetic control, double machine learning).
 ## Contents
 
 1. [Quick start](#quick-start)
-2. [Methodology](#methodology) — the pipeline, the two data tracks, and how to reach every result
-3. [What reproduces — and what does not](#what-reproduces--and-what-does-not)
-4. [Tab reference](#tab-reference)
-5. [Data](#data) — rebuilding the panel, audit, schema, sources
-6. [Project layout](#project-layout) · [Development](#development) · [Credits](#credits--licence)
+2. [Key findings and interpretation](#key-findings-and-interpretation)
+3. [Methodology](#methodology) — the pipeline, the two data tracks, and how to reach every result
+4. [What reproduces — and what does not](#what-reproduces--and-what-does-not)
+5. [Tab reference](#tab-reference)
+6. [Data](#data) — rebuilding the panel, audit, schema, sources
+7. [Project layout](#project-layout) · [Development](#development) · [Credits](#credits--licence)
+
+A longer, figure-illustrated version of the findings lives in the
+[project wiki](https://github.com/andrm101/thesis-interface-build/wiki); its
+source is [`docs/wiki/`](docs/wiki), published automatically by
+`.github/workflows/wiki.yml` on every push to `main`.
 
 ---
 
@@ -52,6 +58,70 @@ python reproduce.py                   # every headline result → results/RESULT
 On Linux, Tk comes from the system package manager (`sudo apt install
 python3-tk`). A dark palette is the default; toggle the light palette from
 the top-right corner for paper-ready screenshots.
+
+---
+
+## Key findings and interpretation
+
+The thesis argues that R&D raises productivity in innovation leaders but
+not (yet) in catch-up economies, whose low absorptive capacity masks the
+effect in pooled data — the "GERD paradox". Taken together, the evidence
+supports the *direction* of that argument, but for a different reason than
+the one originally given, and with less certainty. IDs refer to
+[`results/RESULTS.md`](results/RESULTS.md); figures are in
+[`results/figures/`](results/figures).
+
+1. **Two R&D regimes are real.** Clustering countries on R&D *levels*
+   (intensity, researchers, patents, tertiary education) recovers the
+   thesis typology exactly — Austria, Belgium, Denmark, Finland, France,
+   Germany, Netherlands, Sweden vs. sixteen Eastern and Southern economies
+   (B2, Fig. 1). The original clustering on growth rates could not show
+   this (77 % agreement).
+2. **The catch-up is happening, but only from below.** Emerging economies
+   converge fast — about 3 % of the gap closes per year (C1, Fig. 7) — and
+   productivity falls into three convergence clubs rather than one EU path
+   (B4, Fig. 2). Among the leaders there is no convergence: the initially
+   richest grew slightly faster.
+3. **Productivity drives R&D more than R&D drives productivity.**
+   Dumitrescu-Hurlin tests find causality from productivity to R&D, not the
+   reverse (B6): countries spend more on R&D *after* they get richer. This
+   is why fixed-effects regressions of productivity on same-year R&D are
+   misleading — they return a *negative* R&D coefficient for the leaders
+   (A3, B3) that turns positive after one to three years, a J-curve
+   (A3b, Fig. 3).
+4. **Once that feedback is removed, R&D pays off — mainly in the leaders.**
+   System GMM treats R&D as endogenous. In the two specifications that pass
+   every diagnostic, R&D is positive and significant (B13, Fig. 5): a 10 %
+   larger R&D knowledge stock per worker raises output per worker by about
+   0.5 % in the short run (same year, holding past productivity fixed), and
+   +0.1 pp of GDP spent on R&D by about 0.36 %. The effect is concentrated in the Innovative economies and
+   smaller in the Emerging ones — the thesis's direction.
+5. **…but the evidence is fragile.** The GMM result holds only with
+   shallow instrument lags; deeper lags lose significance and show weak
+   instruments. Double ML finds the R&D effect shrinking with distance to
+   the frontier in most specifications, but not robustly (B12, Fig. 6).
+   Long-run effects are imprecise because productivity is so persistent.
+6. **Savings matter; EU accession, as measured here, cannot be separated
+   from the catch-up already under way.** Savings are the most consistent
+   driver on the thesis panel (A2, A3). The apparent +14 % accession effect
+   disappears once pre-existing trends are accounted for (B9, Fig. 4).
+7. **Productivity growth is hard to predict.** Honest cross-validation
+   gives out-of-sample R² of about 0.05 and negative R² for forecasting
+   later years (A6) — a caution against reading much into ML scenario tools.
+
+**How to phrase it in the thesis.** Present the GERD paradox as a problem of
+*timing and reverse causality* rather than of aggregation alone: R&D
+follows income, and its payoff arrives with a lag and mainly where
+absorptive capacity is high. Report the GMM estimates with their
+diagnostics and the specification grid, and state the data corrections
+(`docs/DATA_AUDIT.md`), since `Human Capital Proxy` in the submitted panel
+is misaligned.
+
+**Limitations.** 24 countries and 24 years (small N for GMM and clustering);
+the thesis panel stores growth indices, not levels; the causal designs have
+no direct policy variable yet (R&D budgets, tax incentives —
+`docs/DATA_SOURCES.md`); log productivity has a unit root (B5), so
+level regressions rely on the dynamic specifications.
 
 ---
 
@@ -338,8 +408,9 @@ thesis-interface-build/
 ├── results/                 # RESULTS.md, figures/, tables/ (reproduce.py)
 ├── tabs/                    # one mixin per GUI tab (1-14)
 ├── docs/                    # DATA_AUDIT, DATA_SOURCES, HYPOTHESES
+│   └── wiki/                # wiki source (synced to the GitHub wiki)
 ├── tests/                   # pytest (data, modules, planted-effect recovery, GUI smoke)
-└── .github/workflows/       # CI and Windows release build
+└── .github/workflows/       # CI, Windows release build, wiki sync
 ```
 
 ---
@@ -363,13 +434,15 @@ and 3.12 for every push and pull request.
 ### Releasing a Windows build
 
 ```bash
-git tag v1.1.0 && git push origin v1.1.0
+git tag -a v1.1.0 -m "v1.1.0" && git push origin v1.1.0
 ```
 
-`.github/workflows/release.yml` builds the app with PyInstaller on a Windows
-runner, bundles `panel_data.xlsx`, and attaches
-`EU-Innovation-Panel-windows.zip` to a GitHub Release (or run it manually
-from the **Actions** tab).
+or create the release in the GitHub UI (**Releases → Draft a new release →
+new tag on `main`**). Either triggers `.github/workflows/release.yml`,
+which builds the app with PyInstaller on a Windows runner, bundles
+`panel_data.xlsx` and `data/panel_levels.csv`, and attaches
+`EU-Innovation-Panel-windows.zip` to the release. The workflow can also be
+run manually from the **Actions** tab to get the zip as a build artifact.
 
 ---
 
