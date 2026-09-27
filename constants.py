@@ -54,6 +54,13 @@ EMERGING_CLUSTER = [
 
 EU25 = sorted(set(INNOVATIVE_CLUSTER + EMERGING_CLUSTER))
 
+# ── Manual exclusions ──────────────────────────────────────────────────────
+# Countries always deselected on load and by every group shortcut (lower-case
+# names). Empty by default: outliers are removed by the z-score screen in
+# Tab 1 (outliers.py), which drops Luxembourg on the evidence (Human Capital
+# Proxy country-mean z ≈ +3.3) rather than by hand.
+EXCLUDED_COUNTRIES: list[str] = []
+
 
 # ── Variable role detection (panel/econometric helpers) ────────────────────
 # Keywords used across tabs to auto-detect variables that play a specific

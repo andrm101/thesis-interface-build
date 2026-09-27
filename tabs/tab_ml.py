@@ -12,11 +12,9 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.linear_model import Ridge, Lasso
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import cross_val_score, KFold, train_test_split
-from sklearn.metrics import r2_score, mean_squared_error
 from matplotlib.figure import Figure
 
+import ml_eval
 import theme
 from helpers import make_text, write, clear_txt, embed_figure
 
@@ -55,6 +53,11 @@ class MLTabMixin:
                            insertbackground=theme.FG)
         _spcv.pack(side=tk.LEFT, padx=4)
         self._tk_spinboxes.append(_spcv)
+        ttk.Label(row1, text="  CV scheme:").pack(side=tk.LEFT, padx=(10, 0))
+        self.cv_scheme = tk.StringVar(value=ml_eval.SCHEMES[0])
+        ttk.Combobox(row1, textvariable=self.cv_scheme,
+                     values=ml_eval.SCHEMES, state="readonly",
+                     width=24).pack(side=tk.LEFT, padx=4)
         self.use_lags = tk.BooleanVar(value=True)
         ttk.Checkbutton(row1, text="Include lag features (t−1)",
                         variable=self.use_lags).pack(side=tk.LEFT, padx=10)
@@ -78,6 +81,9 @@ class MLTabMixin:
                    command=self._run_ml).pack(side=tk.LEFT, padx=4)
         ttk.Button(btn_row, text="Feature Importance",
                    command=self._plot_importance).pack(side=tk.LEFT, padx=4)
+        ttk.Button(btn_row, text="Held-out Importance",
+                   command=self._plot_heldout_importance).pack(
+            side=tk.LEFT, padx=4)
         ttk.Button(btn_row, text="Actual vs Predicted",
                    command=self._plot_avp).pack(side=tk.LEFT, padx=4)
 
@@ -116,35 +122,32 @@ class MLTabMixin:
         feats  = [self.feat_lb.get(i) for i in self.feat_lb.curselection()]
         if not target or not feats:
             messagebox.showwarning("Config", "Select target and features.")
-            return None, None, None
+            return None, None, None, None
         df = self.df[["Country", "Year", target] + feats].copy()
         if self.use_lags.get():
             df = df.sort_values(["Country", "Year"])
             for f in feats:
                 df[f"{f}_lag1"] = df.groupby("Country")[f].shift(1)
-        df = df.drop(columns=["Country", "Year"]).dropna()
-        X  = df.drop(columns=[target])
+        df = df.dropna().reset_index(drop=True)
+        meta = df[["Country", "Year"]]
+        X  = df.drop(columns=["Country", "Year", target])
         y  = df[target]
-        return X, y, list(X.columns)
+        return X, y, list(X.columns), meta
 
     # ── Training ──────────────────────────────────────────────────────────────
     def _run_ml(self):
         if not self._check_data():
             return
-        X, y, feat_names = self._prepare_ml_data()
+        X, y, feat_names, meta = self._prepare_ml_data()
         if X is None:
             return
+        scheme = self.cv_scheme.get()
+        folds  = int(self.cv_folds.get())
+        self.ml_data = (X, y, meta, scheme, folds)
         self.status_var.set("Training ML models…")
 
         def run():
             try:
-                scaler = StandardScaler()
-                X_sc   = scaler.fit_transform(X)
-                kf     = KFold(n_splits=self.cv_folds.get(),
-                               shuffle=True, random_state=42)
-                X_tr, X_te, y_tr, y_te = train_test_split(
-                    X_sc, y, test_size=0.2, random_state=42)
-
                 mtype = self.ml_model_type.get()
                 pool  = {}
                 if mtype in ("Random Forest",     "All Models (Compare)"):
@@ -166,32 +169,17 @@ class MLTabMixin:
 
                 results = {}
                 for name, model in pool.items():
-                    cv_r2   = cross_val_score(model, X_sc, y,
-                                              cv=kf, scoring="r2")
-                    cv_rmse = np.sqrt(-cross_val_score(
-                        model, X_sc, y, cv=kf,
-                        scoring="neg_mean_squared_error"))
-                    model.fit(X_tr, y_tr)
-                    y_pred  = model.predict(X_te)
-                    results[name] = {
-                        "model":        model,
-                        "y_te":         y_te,
-                        "y_pred":       y_pred,
-                        "cv_r2_mean":   cv_r2.mean(),
-                        "cv_r2_std":    cv_r2.std(),
-                        "cv_rmse_mean": cv_rmse.mean(),
-                        "cv_rmse_std":  cv_rmse.std(),
-                        "test_r2":      r2_score(y_te, y_pred),
-                        "test_rmse":    np.sqrt(mean_squared_error(y_te, y_pred)),
-                        "feat_names":   feat_names,
-                    }
+                    r = ml_eval.evaluate(model, X, y, meta["Country"],
+                                         meta["Year"], scheme, folds)
+                    r["feat_names"] = feat_names
+                    results[name] = r
 
                 self.ml_results  = results
-                self.ml_scaler   = scaler
                 self.ml_features = feat_names
                 best             = max(results,
-                                       key=lambda k: results[k]["test_r2"])
+                                       key=lambda k: results[k]["cv_r2_mean"])
                 self.ml_model    = results[best]["model"]
+                self.ml_scaler   = results[best]["scaler"]
                 self.root.after(0, lambda: self._display_ml(results))
             except Exception:
                 import traceback as tb
@@ -203,25 +191,33 @@ class MLTabMixin:
 
     def _display_ml(self, results):
         clear_txt(self.ml_txt)
-        best  = max(results, key=lambda k: results[k]["test_r2"])
+        best  = max(results, key=lambda k: results[k]["cv_r2_mean"])
+        any_r = next(iter(results.values()))
+        W = 76
         lines = [
-            f"ML MODEL EVALUATION\n{'='*62}\n",
-            f"{'Model':<22} {'CV R²':>8} {'±':>6} "
-            f"{'Test R²':>9} {'RMSE':>10}\n",
-            f"{'─'*62}\n",
+            f"ML MODEL EVALUATION — {any_r['scheme']}\n{'='*W}\n",
+            f"{'Model':<20} {'CV R²':>8} {'±':>6} {'Hold R²':>9} "
+            f"{'RMSE':>9} {'Random-CV R²':>14}\n",
+            f"{'─'*W}\n",
         ]
         for name, r in results.items():
             lines.append(
-                f"{name:<22} {r['cv_r2_mean']:>8.4f} {r['cv_r2_std']:>6.4f} "
-                f"{r['test_r2']:>9.4f} {r['test_rmse']:>10.4f}"
+                f"{name:<20} {r['cv_r2_mean']:>8.4f} {r['cv_r2_std']:>6.4f} "
+                f"{r['test_r2']:>9.4f} {r['test_rmse']:>9.4f} "
+                f"{r['random_cv_r2']:>14.4f}"
                 + ("  ← best\n" if name == best else "\n"))
-        lines.append(f"{'─'*62}\n")
+        lines.append(f"{'─'*W}\n")
         lines.append(
-            f"CV folds: {self.cv_folds.get()}  |  Test set: 20%  |  "
-            f"Lag features: {self.use_lags.get()}\n")
+            f"CV folds: {any_r['n_folds']}  |  Holdout: 20 % "
+            f"({'countries' if any_r['scheme'] == ml_eval.SCHEMES[0] else 'final years' if any_r['scheme'] == ml_eval.SCHEMES[1] else 'rows'})"
+            f"  |  Lag features: {self.use_lags.get()}\n"
+            "Best model chosen by CV R². Scaling is fitted inside each fold.\n"
+            "Random-CV R² (shuffled rows, same country in train & test) is "
+            "shown only\nfor reference: the gap to CV R² is the leakage it "
+            "hides.\n")
         write(self.ml_txt, "".join(lines))
         self.status_var.set(
-            f"ML complete — best: {best}  R²={results[best]['test_r2']:.4f}")
+            f"ML complete — best: {best}  CV R²={results[best]['cv_r2_mean']:.4f}")
 
         if len(results) > 1:
             for w in self.ml_plot_frame.winfo_children():
@@ -230,14 +226,23 @@ class MLTabMixin:
             colors = [theme.TEAL if n == best else theme.BLUE for n in names]
             fig    = Figure(figsize=(10, 5), facecolor=theme.BG)
             ax1    = fig.add_subplot(121)
-            ax1.bar(names, [results[n]["test_r2"]   for n in names],
-                    color=colors, alpha=0.85)
-            ax1.set_title("Test R²",   color=theme.FG); ax1.set_ylim(0, 1)
+            xs = np.arange(len(names))
+            ax1.bar(xs - 0.2, [results[n]["cv_r2_mean"] for n in names],
+                    width=0.4, color=colors, alpha=0.9,
+                    yerr=[results[n]["cv_r2_std"] for n in names],
+                    label="Honest CV")
+            ax1.bar(xs + 0.2, [results[n]["random_cv_r2"] for n in names],
+                    width=0.4, color=theme.GRAY, alpha=0.6,
+                    label="Random K-fold (leaky)")
+            ax1.set_xticks(xs, names)
+            ax1.axhline(0, color=theme.FG, lw=0.6)
+            ax1.legend(fontsize=7)
+            ax1.set_title("CV R²", color=theme.FG)
             ax1.tick_params(axis="x", rotation=20, colors=theme.FG, labelsize=8)
             ax2    = fig.add_subplot(122)
             ax2.bar(names, [results[n]["test_rmse"] for n in names],
                     color=colors, alpha=0.85)
-            ax2.set_title("Test RMSE", color=theme.FG)
+            ax2.set_title("Holdout RMSE", color=theme.FG)
             ax2.tick_params(axis="x", rotation=20, colors=theme.FG, labelsize=8)
             fig.suptitle("Model Comparison", color=theme.FG)
             fig.tight_layout()
@@ -312,3 +317,61 @@ class MLTabMixin:
         fig.suptitle("Actual vs Predicted", color=theme.FG)
         fig.tight_layout()
         embed_figure(fig, self.ml_plot_frame)
+
+    def _plot_heldout_importance(self):
+        if not self.ml_results or getattr(self, "ml_data", None) is None:
+            messagebox.showinfo("Info", "Train models first.")
+            return
+        X, y, meta, scheme, folds = self.ml_data
+        best = max(self.ml_results,
+                   key=lambda k: self.ml_results[k]["cv_r2_mean"])
+        model = self.ml_results[best]["model"]
+        self.status_var.set(f"Held-out permutation importance ({best})…")
+
+        def work():
+            return ml_eval.grouped_permutation_importance(
+                model, X, y, meta["Country"], meta["Year"], scheme, folds)
+
+        def show(t):
+            clear_txt(self.ml_txt)
+            lines = [f"HELD-OUT PERMUTATION IMPORTANCE — {best}\n{'='*62}\n",
+                     f"  Scheme: {scheme}. Importance = drop in held-out R² "
+                     f"when the\n  feature is shuffled in the test fold "
+                     f"(mean ± sd over folds).\n\n",
+                     f"  {'Feature':<32}{'ΔR²':>9}{'sd':>8}{'folds>0':>9}\n"]
+            for _, r in t.iterrows():
+                lines.append(f"  {r.feature:<32}{r['mean']:>9.4f}"
+                             f"{r['std']:>8.4f}{r.share_positive:>9.0%}\n")
+            lines.append("\n  Unlike impurity/coefficient importances, these "
+                         "measure what\n  generalises to unseen "
+                         f"{'countries' if scheme == ml_eval.SCHEMES[0] else 'data'}"
+                         "; ≤ 0 means no out-of-sample value.\n")
+            write(self.ml_txt, "".join(lines))
+            for w in self.ml_plot_frame.winfo_children():
+                w.destroy()
+            tt = t.iloc[::-1]
+            fig = Figure(figsize=(9, max(4, 0.45 * len(tt) + 1.5)),
+                         facecolor=theme.BG)
+            ax = fig.add_subplot(111)
+            ax.barh(tt.feature, tt["mean"], xerr=tt["std"],
+                    color=[theme.TEAL if v > 0 else theme.GRAY
+                           for v in tt["mean"]], capsize=3,
+                    error_kw={"ecolor": theme.FG, "alpha": 0.8})
+            ax.axvline(0, color=theme.FG, lw=0.7)
+            ax.set_xlabel("drop in held-out R² when shuffled")
+            ax.set_title(f"Held-out permutation importance — {best}",
+                         color=theme.FG)
+            ax.tick_params(labelsize=8)
+            fig.tight_layout()
+            embed_figure(fig, self.ml_plot_frame)
+            self.status_var.set("Held-out importance done")
+
+        def _t():
+            try:
+                res = work()
+                self.root.after(0, lambda: show(res))
+            except Exception as exc:
+                self.root.after(0, lambda exc=exc: messagebox.showerror(
+                    "Importance Error", str(exc)))
+        threading.Thread(target=_t, daemon=True).start()
+

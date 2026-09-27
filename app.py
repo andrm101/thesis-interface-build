@@ -36,6 +36,7 @@ from tabs.tab_unitroot    import UnitRootTabMixin
 from tabs.tab_var         import VARTabMixin
 from tabs.tab_advanced    import AdvancedTabMixin
 from tabs.tab_report      import ReportTabMixin
+from tabs.tab_causal      import CausalTabMixin
 
 
 APP_TITLE    = "Augmented Solow · R&D Heterogeneity Lab"
@@ -48,7 +49,7 @@ APP_SUBTITLE = ("EU-25 sample (23 countries shipped) · 2000-2023 · World Bank 
 # glance without depending on emoji font support.
 TAB_LAYOUT = [
     ("  1 · Data            ", "_tab_data",         None),
-    ("  2 · Statistics      ", "_tab_stats",        None),
+    ("  2 · Statistics      ", "_tab_stats",        "_refresh_stats_vars"),
     ("  3 · Panel FE/RE     ", "_tab_panel",        "_refresh_panel_vars"),
     ("  4 · Convergence     ", "_tab_conv",         "_refresh_conv_vars"),
     ("  5 · Clustering      ", "_tab_cluster",      "_refresh_cluster_vars"),
@@ -60,6 +61,7 @@ TAB_LAYOUT = [
     (" 11 · VAR / IRF       ", "_tab_var",          "_refresh_var_vars"),
     (" 12 · Advanced        ", "_tab_advanced",     "_refresh_adv_vars"),
     (" 13 · Report          ", "_tab_report",       None),
+    (" 14 · Causal          ", "_tab_causal",       "_refresh_causal_vars"),
 ]
 
 
@@ -77,6 +79,7 @@ class ThesisApp(
     VARTabMixin,
     AdvancedTabMixin,
     ReportTabMixin,
+    CausalTabMixin,
 ):
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
@@ -97,6 +100,7 @@ class ThesisApp(
         self.ml_model    = None   # best trained ML model
         self.ml_scaler   = None
         self.ml_features: list = []
+        self.ml_data     = None   # (X, y, meta, scheme, folds) of last run
         self.ml_results:  dict = {}
         self.clusters    = None   # DataFrame: Country, Cluster
 
@@ -165,7 +169,8 @@ class ThesisApp(
         # Read-only Text widgets in each tab
         for attr in ("stats_txt", "panel_txt", "conv_txt",
                      "cluster_txt", "ml_txt", "sc_txt", "cmp_txt",
-                     "diag_txt", "ur_txt", "var_txt", "adv_txt", "rpt_txt"):
+                     "diag_txt", "ur_txt", "var_txt", "adv_txt", "rpt_txt",
+                     "cz_txt"):
             if hasattr(self, attr):
                 getattr(self, attr).configure(
                     bg=theme.WBG, fg=theme.FG, insertbackground=theme.FG)
@@ -173,7 +178,7 @@ class ThesisApp(
         # Listboxes (all of them, including the convergence control listbox)
         for attr in ("country_lb", "reg_lb", "cluster_lb", "feat_lb",
                      "conv_ctrl_lb", "cmp_reg_lb", "ur_joh_lb",
-                     "var_lb", "adv_reg_lb", "rpt_model_lb"):
+                     "var_lb", "adv_reg_lb", "rpt_model_lb", "cz_ctrl_lb"):
             if hasattr(self, attr):
                 getattr(self, attr).configure(
                     bg=theme.WBG, fg=theme.FG,

@@ -31,6 +31,7 @@ from statsmodels.tsa.vector_ar.var_model import VAR
 from statsmodels.tsa.vector_ar.vecm import VECM, select_coint_rank
 from statsmodels.tsa.stattools import grangercausalitytests
 
+import panel_tests
 import theme
 from helpers import make_text, write, clear_txt, embed_figure
 
@@ -148,6 +149,7 @@ class VARTabMixin:
             ("FEVD",              self._run_fevd),
             ("Forecast",          self._run_var_forecast),
             ("Granger Causality", self._run_granger),
+            ("Panel Granger (D-H)", self._run_dh),
             ("VECM",              self._run_vecm),
         ]:
             ttk.Button(r3, text=label, command=cmd).pack(side=tk.LEFT, padx=4)
@@ -1064,3 +1066,55 @@ class VARTabMixin:
         fig.suptitle("VECM — Cointegrating Relations & Fitted Values",
                      color=theme.FG, fontsize=10)
         embed_figure(fig, self.var_plot_frame, toolbar=True)
+
+    # ── Dumitrescu-Hurlin panel Granger causality ─────────────────────────
+    def _run_dh(self):
+        if not self._check_data():
+            return
+        cols = [self.var_lb.get(i) for i in self.var_lb.curselection()]
+        if len(cols) < 2:
+            messagebox.showwarning("Panel Granger",
+                                   "Select ≥ 2 variables in the list.")
+            return
+        try:
+            kmax = max(1, min(int(self.var_maxlag_var.get()), 3))
+        except ValueError:
+            kmax = 2
+        df = self.df.copy()
+
+        def _work():
+            try:
+                rows = []
+                for c in cols:
+                    for e in cols:
+                        if c == e:
+                            continue
+                        for diff in (False, True):
+                            for K in range(1, kmax + 1):
+                                r = panel_tests.dumitrescu_hurlin(
+                                    df, c, e, K, diff)
+                                rows.append((c, e, "Δ" if diff else "lvl", K,
+                                             r.W_bar, r.Z_tilde,
+                                             r.p_Z_tilde, r.N))
+                out = [f"\n{'═'*78}\n Dumitrescu-Hurlin (2012) panel "
+                       f"Granger non-causality\n{'═'*78}\n"
+                       "  H0: X does not Granger-cause Y in any country; "
+                       "H1: it does in some.\n  Heterogeneous "
+                       "coefficients; Z̃ is the small-T statistic. Use Δ "
+                       "(first\n  differences) for I(1) series — check "
+                       "CIPS in Tab 10.\n\n",
+                       f"  {'X → Y':<44}{'form':>5}{'K':>3}{'W̄':>7}"
+                       f"{'Z̃':>8}{'p':>10}\n"]
+                for c, e, f, K, wb, zt, p, n in rows:
+                    from constants import stars
+                    ps = f"{p:.3f}{stars(p)}" if np.isfinite(p) else "n/a"
+                    out.append(f"  {(c[:20] + ' → ' + e[:20]):<44}{f:>5}"
+                               f"{K:>3}{wb:>7.2f}{zt:>8.2f}{ps:>10}\n")
+                text = "".join(out)
+                self.root.after(0, lambda: (clear_txt(self.var_txt),
+                                            write(self.var_txt, text)))
+            except Exception as exc:
+                self.root.after(0, lambda exc=exc: messagebox.showerror(
+                    "Panel Granger Error", str(exc)))
+        threading.Thread(target=_work, daemon=True).start()
+

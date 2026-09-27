@@ -23,14 +23,17 @@ from tkinter import ttk, filedialog, messagebox
 import numpy as np
 import pandas as pd
 from matplotlib.figure import Figure
+from matplotlib.patches import Rectangle
 from statsmodels.tsa.filters.hp_filter import hpfilter
 
 import theme
 from constants import (
+    EXCLUDED_COUNTRIES,
     WESTERN_EU, EASTERN_EU,
     INNOVATIVE_CLUSTER, EMERGING_CLUSTER, EU25,
 )
 from helpers import make_text, write, clear_txt, embed_figure
+import outliers
 
 
 class DataTabMixin:
@@ -93,6 +96,8 @@ class DataTabMixin:
         for label, cmd, style in preset_buttons:
             ttk.Button(btn_row, text=label, command=cmd,
                        style=style, width=10).pack(side=tk.LEFT, padx=2)
+
+        self._build_zscore_panel(flt)
 
         actions = ttk.Frame(top)
         actions.pack(pady=6)
@@ -230,7 +235,7 @@ class DataTabMixin:
                 self.country_lb.delete(0, tk.END)
                 for c in countries:
                     self.country_lb.insert(tk.END, c)
-                self.country_lb.select_set(0, tk.END)
+                self._sel_all()
             self._apply_filters()
             self.status_var.set(
                 f"Loaded: {len(df):,} rows · {len(df.columns)} columns")
@@ -253,6 +258,11 @@ class DataTabMixin:
         sel = [self.country_lb.get(i) for i in self.country_lb.curselection()]
         if sel:
             df = df[df["Country"].isin(sel)]
+        self.df_prescreen = df.reset_index(drop=True)
+        self.z_result = None
+        if self.z_enforce.get():
+            self.z_result = self._run_zscreen(self.df_prescreen)
+            df = self.z_result.df
         self.df = df.reset_index(drop=True)
         self._update_preview()
         nc = df["Country"].nunique() if "Country" in df.columns else "?"
@@ -261,7 +271,9 @@ class DataTabMixin:
         self.data_info.set(
             f"{len(df):,} observations  ·  {nc} countries  ·  {ny} years  ·  "
             f"Numeric cols: {cols_preview} …")
-        self.status_var.set(f"Ready — {len(df):,} obs · {nc} countries")
+        z_note = (f"  ·  z-screen: {self.z_result.summary()}"
+                  if self.z_result is not None else "")
+        self.status_var.set(f"Ready — {len(df):,} obs · {nc} countries{z_note}")
         self._refresh_tool_vars()
 
     def _update_preview(self):
@@ -278,14 +290,150 @@ class DataTabMixin:
             t.insert("", tk.END, values=[
                 f"{v:.3f}" if isinstance(v, float) else v for v in row])
 
+    # ── Z-score outlier screen ────────────────────────────────────────────
+    def _build_zscore_panel(self, parent):
+        zf = ttk.LabelFrame(parent, text="Z-score Outlier Screen", padding=8)
+        zf.pack(side=tk.LEFT, padx=4, fill=tk.Y)
+        self.z_enforce = tk.BooleanVar(value=True)
+        self.z_thr     = tk.DoubleVar(value=3.0)
+        self.z_level   = tk.StringVar(value="Countries")
+        self.z_method  = tk.StringVar(value="Classic z")
+        self.z_action  = tk.StringVar(value="Set to NaN")
+        self.z_vars    = tk.StringVar(value="Model variables")
+        self.z_result  = None
+        self.df_prescreen = None
+
+        ttk.Checkbutton(zf, text="Enforce on Apply",
+                        variable=self.z_enforce).grid(
+            row=0, column=0, columnspan=2, sticky=tk.W)
+        rows = [("|z| >",   None),
+                ("Level:",  (self.z_level,  outliers.LEVELS)),
+                ("Method:", (self.z_method, outliers.METHODS)),
+                ("Obs:",    (self.z_action, outliers.OBS_ACTIONS)),
+                ("Vars:",   (self.z_vars,   outliers.VAR_SETS))]
+        for r, (lbl, spec) in enumerate(rows, start=1):
+            ttk.Label(zf, text=lbl).grid(row=r, column=0, sticky=tk.W)
+            if spec is None:
+                sp = tk.Spinbox(zf, from_=1.5, to=6.0, increment=0.5,
+                                textvariable=self.z_thr, width=6,
+                                bg=theme.WBG, fg=theme.FG,
+                                buttonbackground=theme.WBG,
+                                insertbackground=theme.FG)
+                sp.grid(row=r, column=1, sticky=tk.W, pady=1)
+                self._tk_spinboxes.append(sp)
+            else:
+                var, values = spec
+                ttk.Combobox(zf, textvariable=var, values=values,
+                             state="readonly", width=13).grid(
+                    row=r, column=1, sticky=tk.W, pady=1)
+        ttk.Button(zf, text="Screen Report…", style="Ghost.TButton",
+                   command=self._zscore_report).grid(
+            row=6, column=0, columnspan=2, sticky=tk.EW, pady=(4, 0))
+
+    def _run_zscreen(self, df):
+        try:
+            thr = float(self.z_thr.get())
+        except (tk.TclError, ValueError):
+            thr = 3.0
+        cols = None
+        if self.z_vars.get() == "All numeric":
+            cols = [c for c in df.select_dtypes("number").columns
+                    if c != "Year"]
+        return outliers.screen(df, cols=cols, threshold=thr,
+                               method=self.z_method.get(),
+                               level=self.z_level.get(),
+                               obs_action=self.z_action.get())
+
+    def _zscore_report(self):
+        if self.df_prescreen is None:
+            messagebox.showwarning("No Data", "Load a dataset first.")
+            return
+        # Always compute (even if not enforced) so the user can preview.
+        res = self._run_zscreen(self.df_prescreen)
+        if res.country_z is None and self.z_level.get() != "Observations":
+            res.country_z = outliers.country_zscores(
+                self.df_prescreen, res.cols,
+                self.z_method.get().startswith("Robust"))
+
+        win = tk.Toplevel(self.root)
+        win.title("Z-score Outlier Screen")
+        win.configure(bg=theme.BG)
+        win.geometry("1250x720")
+        pane = ttk.PanedWindow(win, orient=tk.HORIZONTAL)
+        pane.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
+        left  = ttk.Frame(pane); pane.add(left,  weight=1)
+        right = ttk.Frame(pane); pane.add(right, weight=2)
+        txt = make_text(left, height=30, copy_root=self.root)
+
+        enforced = "ENFORCED on Apply" if self.z_enforce.get() else \
+                   "preview only (enforcement off)"
+        lines = [f"Z-SCORE OUTLIER SCREEN — {enforced}\n{'='*56}\n",
+                 f"Method   : {res.method}   threshold |z| > {res.threshold}\n",
+                 f"Level    : {res.level}\n",
+                 f"Variables: {', '.join(res.cols)}\n\n"]
+        if res.level in ("Countries", "Both"):
+            lines.append("COUNTRY LEVEL (z of country means vs. cross-country "
+                         "distribution)\n" + "─"*56 + "\n")
+            if res.flagged_countries:
+                for c, hits in res.flagged_countries.items():
+                    h = ", ".join(f"{v} (z={z:+.2f})" for v, z in hits)
+                    lines.append(f"  ✗ {c:<16} {h}\n")
+            else:
+                lines.append("  none flagged\n")
+            lines.append("\n")
+        fo = res.flagged_obs
+        if fo is not None:
+            lines.append("OBSERVATION LEVEL (within-country z)  → "
+                         f"{res.obs_action}\n" + "─"*56 + "\n")
+            if len(fo):
+                for _, r in fo.sort_values("z", key=abs,
+                                           ascending=False).iterrows():
+                    lines.append(f"  {r.Country:<14} {r.Year!s:<6} "
+                                 f"{r.Variable:<24} {r.Value:>10.3f}  "
+                                 f"z={r.z:+.2f}\n")
+                crisis = fo["Year"].isin([2008, 2009, 2020, 2021]).mean()
+                if crisis >= 0.3:
+                    lines.append(
+                        f"\n  ⚠ {crisis:.0%} of flagged observations fall in "
+                        "2008-09 / 2020-21.\n    These are likely genuine "
+                        "macro shocks (GFC, COVID), not data errors —\n"
+                        "    consider year effects instead of deleting them.\n")
+            else:
+                lines.append("  none flagged\n")
+        write(txt, "".join(lines))
+
+        if res.country_z is not None:
+            import seaborn as sns
+            z = res.country_z
+            fig = Figure(figsize=(9, 7), facecolor=theme.BG)
+            ax = fig.add_subplot(111)
+            lim = max(res.threshold + 0.5, float(np.nanmax(np.abs(z.values))))
+            sns.heatmap(z, cmap="RdBu_r", center=0, vmin=-lim, vmax=lim,
+                        annot=True, fmt=".1f", annot_kws={"size": 7},
+                        linewidths=0.4, ax=ax, cbar_kws={"label": "z"})
+            for (i, j), v in np.ndenumerate(z.values):
+                if np.isfinite(v) and abs(v) > res.threshold:
+                    ax.add_patch(Rectangle((j, i), 1, 1, fill=False,
+                                           edgecolor=theme.AMBER, lw=2.2))
+            ax.set_title(f"Country-mean z-scores (boxed: |z| > "
+                         f"{res.threshold})", color=theme.FG)
+            ax.set_xlabel(""); ax.set_ylabel("")
+            ax.tick_params(colors=theme.FG, labelsize=8)
+            fig.tight_layout()
+            embed_figure(fig, right)
+
     # ── Country selection helpers ─────────────────────────────────────────
-    def _sel_all(self):  self.country_lb.select_set(0, tk.END)
+    def _sel_all(self):  self._sel_group(None)
     def _sel_none(self): self.country_lb.selection_clear(0, tk.END)
 
     def _sel_group(self, group):
+        """Select countries in *group* (all if None), minus EXCLUDED_COUNTRIES."""
         self.country_lb.selection_clear(0, tk.END)
         for i in range(self.country_lb.size()):
-            if self.country_lb.get(i).lower() in group:
+            name = self.country_lb.get(i).lower()
+            if name in EXCLUDED_COUNTRIES:
+                continue
+            if group is None or name in group:
                 self.country_lb.select_set(i)
 
     def _sel_west(self):  self._sel_group(WESTERN_EU)

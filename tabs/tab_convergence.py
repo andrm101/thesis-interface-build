@@ -12,6 +12,7 @@ import statsmodels.api as sm
 from scipy import stats as scipy_stats
 from matplotlib.figure import Figure
 
+import clubs
 import theme
 from constants import stars, WESTERN_EU, EASTERN_EU
 from helpers import make_text, write, clear_txt, embed_figure
@@ -59,6 +60,26 @@ class ConvergenceTabMixin:
                    command=self._run_sigma_conv).pack(side=tk.LEFT, padx=4)
         ttk.Button(btn_row, text="Both (side by side)",
                    command=self._run_both_conv).pack(side=tk.LEFT, padx=4)
+
+        ps = ttk.Frame(ctrl); ps.pack(fill=tk.X, pady=4)
+        ttk.Label(ps, text="Phillips-Sul clubs:").pack(side=tk.LEFT)
+        self.ps_chain = tk.BooleanVar(value=True)
+        ttk.Checkbutton(ps, text="Chain growth index (prev. yr = 100)",
+                        variable=self.ps_chain).pack(side=tk.LEFT, padx=6)
+        self.ps_hp = tk.BooleanVar(value=True)
+        ttk.Checkbutton(ps, text="HP trend (λ=400)",
+                        variable=self.ps_hp).pack(side=tk.LEFT, padx=6)
+        self.ps_merge = tk.BooleanVar(value=True)
+        ttk.Checkbutton(ps, text="Merge clubs",
+                        variable=self.ps_merge).pack(side=tk.LEFT, padx=6)
+        ttk.Button(ps, text="log-t Test (all)",
+                   command=self._run_logt).pack(side=tk.LEFT, padx=4)
+        ttk.Button(ps, text="Club Clustering", style="Accent.TButton",
+                   command=self._run_ps_clubs).pack(side=tk.LEFT, padx=4)
+        ttk.Button(ps, text="Use Clubs as Clusters",
+                   command=self._use_clubs_as_clusters).pack(
+            side=tk.LEFT, padx=4)
+        self.ps_result = None
 
         pane = ttk.PanedWindow(parent, orient=tk.HORIZONTAL)
         pane.pack(fill=tk.BOTH, expand=True, padx=12, pady=4)
@@ -367,3 +388,144 @@ class ConvergenceTabMixin:
                      color=theme.FG, fontsize=13)
         fig.tight_layout()
         embed_figure(fig, self.conv_plot_frame)
+
+    # ══════════════════════════════════════════════════════════════════════
+    # Phillips-Sul (2007) log-t test and convergence clubs
+    # ══════════════════════════════════════════════════════════════════════
+    def _ps_panel(self):
+        if not self._check_data():
+            return None, None
+        col = self.conv_var.get()
+        if not col:
+            messagebox.showwarning("Phillips-Sul", "Pick an income variable.")
+            return None, None
+        logx = clubs.prepare_panel(self.df, col, self.ps_chain.get(),
+                                   400.0 if self.ps_hp.get() else None)
+        if logx.shape[1] < 3 or logx.shape[0] < 10:
+            messagebox.showwarning(
+                "Phillips-Sul", "Need ≥ 3 countries with a complete, positive "
+                "series and ≥ 10 years.")
+            return None, None
+        return col, logx
+
+    def _ps_header(self, col, logx):
+        how = ("chained growth index, base = 100" if self.ps_chain.get()
+               else "levels as given (rescaled so log > 1)")
+        return (f"  Variable : {col}  ({how})\n"
+                f"  Filter   : {'HP trend, λ = 400' if self.ps_hp.get() else 'none'}"
+                f"   |   N = {logx.shape[1]}, T = {logx.shape[0]}, "
+                f"r = 0.3 (first {int(0.3 * logx.shape[0])} yrs dropped)\n")
+
+    @staticmethod
+    def _ps_line(lt):
+        verdict = "converges" if lt.converges else "rejects convergence"
+        return (f"b = {lt.b:+.3f}  (SE {lt.se:.3f})  t = {lt.t:+.2f}  "
+                f"→ {verdict}")
+
+    def _run_logt(self):
+        col, logx = self._ps_panel()
+        if logx is None:
+            return
+        lt = clubs.log_t(logx)
+        clear_txt(self.conv_txt)
+        write(self.conv_txt,
+              f"PHILLIPS-SUL log-t CONVERGENCE TEST\n{'='*64}\n"
+              + self._ps_header(col, logx) +
+              f"\n  {self._ps_line(lt)}\n\n"
+              "  H0: all countries converge (b ≥ 0). Reject if t < −1.65.\n"
+              "  b ≥ 2 ⇒ convergence in levels; 0 ≤ b < 2 ⇒ conditional\n"
+              "  convergence in growth rates. 2b ≈ speed of convergence.\n")
+        self._plot_ps_paths(logx, None, col)
+
+    def _run_ps_clubs(self):
+        col, logx = self._ps_panel()
+        if logx is None:
+            return
+        res = clubs.club_clustering(logx, merge=self.ps_merge.get())
+        self.ps_result = res
+        L = [f"PHILLIPS-SUL CLUB CONVERGENCE\n{'='*64}\n",
+             self._ps_header(col, logx),
+             f"\n  Full sample: {self._ps_line(res.full)}\n\n"]
+        for k, (members, lt) in enumerate(zip(res.clubs, res.club_tests), 1):
+            L.append(f"  CLUB {k}  ({len(members)} countries)   "
+                     f"{self._ps_line(lt)}\n")
+            L.append("    " + ", ".join(members) + "\n\n")
+        if res.divergent:
+            L.append("  NON-CONVERGENT: " + ", ".join(res.divergent) + "\n\n")
+        if res.merges:
+            L.append("  Merged (Schnurbus et al. 2017): "
+                     + "; ".join(res.merges) + "\n")
+            L.append(f"  Initial clubs before merging: "
+                     f"{len(res.initial_clubs)}\n\n")
+        L.append("  Clubs are ordered by the average of the last third of "
+                 "the sample\n  (club 1 = highest). Core formation uses the "
+                 "max-t rule; sieve c* = 0.\n")
+        if self.ps_chain.get():
+            L.append("\n  ⚠ Chained indices start every country at 100, so "
+                     "clubs group\n  cumulative growth since the base year — "
+                     "not absolute productivity\n  levels. Use PWT level data "
+                     "(docs/DATA_SOURCES.md) for level clubs.\n")
+        clear_txt(self.conv_txt)
+        write(self.conv_txt, "".join(L))
+        self._plot_ps_paths(logx, res, col)
+        self.status_var.set(f"Phillips-Sul: {len(res.clubs)} club(s), "
+                            f"{len(res.divergent)} non-convergent")
+
+    def _plot_ps_paths(self, logx, res, col):
+        for w in self.conv_plot_frame.winfo_children():
+            w.destroy()
+        h   = clubs.transition_paths(logx)
+        # Distinct colours for any number of clubs: theme colours first,
+        # then matplotlib's tab10 (skipping near-duplicates of grey).
+        pal = list(dict.fromkeys(theme.cluster_palette()))
+        pal += [c for c in ("#e377c2", "#bcbd22", "#17becf", "#8c564b",
+                            "#ff7f0e", "#2ca02c", "#9467bd")]
+        fig = Figure(figsize=(11, 7), facecolor=theme.BG)
+        if res is None:
+            ax = fig.add_subplot(111)
+            for c in h.columns:
+                ax.plot(h.index, h[c], lw=1, alpha=0.7)
+            ax.axhline(1, color=theme.FG, lw=0.8, ls="--")
+            ax.set_title(f"Relative transition paths h_it — {col}",
+                         color=theme.FG)
+        else:
+            groups = [(f"Club {k}", m) for k, m in enumerate(res.clubs, 1)]
+            if res.divergent:
+                groups.append(("Non-convergent", res.divergent))
+            n  = len(groups)
+            gs = fig.add_gridspec(int(np.ceil(n / 2)), 3)
+            ax0 = fig.add_subplot(gs[:, 0])
+            for i, (name, m) in enumerate(groups):
+                colr = pal[i % len(pal)]
+                ax0.plot(h.index, h[m].mean(axis=1), color=colr, lw=2.2,
+                         label=f"{name} (n={len(m)})")
+            ax0.axhline(1, color=theme.FG, lw=0.8, ls="--")
+            ax0.set_title("Average transition path by club", color=theme.FG)
+            ax0.legend(fontsize=7)
+            for i, (name, m) in enumerate(groups):
+                ax = fig.add_subplot(gs[i // 2, 1 + i % 2])
+                for c in m:
+                    ax.plot(h.index, h[c], color=pal[i % len(pal)], lw=0.9)
+                ax.axhline(1, color=theme.FG, lw=0.5, ls="--")
+                ax.set_title(name + ": " + ", ".join(m)[:48],
+                             color=theme.FG, fontsize=7)
+                ax.tick_params(labelsize=6)
+        fig.suptitle(f"Phillips-Sul transition paths — {col}", color=theme.FG)
+        fig.tight_layout()
+        embed_figure(fig, self.conv_plot_frame)
+
+    def _use_clubs_as_clusters(self):
+        res = self.ps_result
+        if res is None or not res.clubs:
+            messagebox.showinfo("Clubs", "Run Club Clustering first.")
+            return
+        mem = res.membership()
+        self.clusters = mem[mem["Club"] > 0].rename(
+            columns={"Club": "Cluster"}).reset_index(drop=True)
+        messagebox.showinfo(
+            "Clubs",
+            f"{len(res.clubs)} club(s) now used as clusters — Tab 2 "
+            "(Groups → K-Means clusters) and Tab 8 cluster comparison.\n"
+            + (f"Non-convergent countries excluded: "
+               f"{', '.join(res.divergent)}" if res.divergent else ""))
+

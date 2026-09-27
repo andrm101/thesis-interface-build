@@ -80,8 +80,14 @@ class ClusterTabMixin:
         num_cols = [c for c in self.df.select_dtypes("number").columns
                     if c != "Year"]
         self.cluster_lb.delete(0, tk.END)
-        default = {"PIB towards research", "Labor in research",
-                   "Patents per capita", "Human Capital Proxy"}
+        # Prefer R&D-intensity LEVELS (data/panel_levels.csv from
+        # build_panel.py); growth indices cluster on volatility, not on how
+        # innovative a country is.
+        level_default = {"RD_pct_GDP", "Researchers_per_1000_emp",
+                         "Patents_per_million", "Tertiary_share"}
+        default = (level_default if level_default <= set(num_cols) else
+                   {"PIB towards research", "Labor in research",
+                    "Patents per capita", "Human Capital Proxy"})
         for c in num_cols:
             self.cluster_lb.insert(tk.END, c)
             if c in default:

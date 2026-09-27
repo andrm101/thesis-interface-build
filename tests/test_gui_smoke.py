@@ -29,9 +29,11 @@ def app(monkeypatch):
 
 
 def test_all_tabs_build_and_refresh(app):
-    assert app.nb.index("end") == 13
+    assert app.nb.index("end") == 14
     assert app.load_path(DATA_PATH)
-    assert app.df is not None and len(app.df) == 552
+    # Luxembourg is excluded by default: 22 countries x 24 years.
+    assert app.df is not None and len(app.df) == 528
+    assert "Luxembourg" not in set(app.df["Country"])
     for i in range(app.nb.index("end")):
         app.nb.select(i)
         app.root.update()
