@@ -209,8 +209,11 @@ class DataTabMixin:
             title="Select Panel Dataset",
             filetypes=[("Excel / CSV", "*.xlsx *.xls *.csv"), ("All", "*.*")],
         )
-        if not path:
-            return
+        if path:
+            self.load_path(path)
+
+    def load_path(self, path: str) -> bool:
+        """Load a panel dataset from *path*; return True on success."""
         try:
             df = (pd.read_excel(path)
                   if path.lower().endswith((".xlsx", ".xls"))
@@ -231,8 +234,10 @@ class DataTabMixin:
             self._apply_filters()
             self.status_var.set(
                 f"Loaded: {len(df):,} rows · {len(df.columns)} columns")
+            return True
         except Exception as e:
             messagebox.showerror("Load Error", str(e))
+            return False
 
     def _apply_filters(self):
         if self.df_raw is None:

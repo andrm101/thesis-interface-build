@@ -223,7 +223,7 @@ class ClusterTabMixin:
         ve     = pca.explained_variance_ratio_
 
         cl_labels = self._auto_label_clusters(
-            pd.DataFrame({"Cluster": labels}, index=cmeans.index), sel, k)
+            cmeans.assign(Cluster=labels), sel, k)
         for w in self.cluster_plot_frame.winfo_children():
             w.destroy()
         fig = Figure(figsize=(9.5, 6.5), facecolor=theme.BG)

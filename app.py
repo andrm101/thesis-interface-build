@@ -145,7 +145,7 @@ class ThesisApp(
                         "K-Means typology  ·  Panel FE / RE  ·  Hausman  ·  "
                         "ADF / PP / IPS  ·  Cross-sectional OLS"),
                   style="Footnote.TLabel").pack(side=tk.LEFT)
-        ttk.Label(ftr, text="v1.0 · github.com/andrewforreal21",
+        ttk.Label(ftr, text="v1.1 · github.com/andrm101/thesis-interface-build",
                   style="Footnote.TLabel").pack(side=tk.RIGHT)
 
     # ── Theme switching ───────────────────────────────────────────────────

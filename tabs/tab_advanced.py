@@ -307,7 +307,7 @@ class AdvancedTabMixin:
                         regs, taus, results_by_tau,
                         ols_coefs, ols_ci))
             except Exception as exc:
-                self.root.after(0, lambda: messagebox.showerror(
+                self.root.after(0, lambda exc=exc: messagebox.showerror(
                     "Quantile Reg Error", str(exc)))
 
         threading.Thread(target=_work, daemon=True).start()
@@ -441,7 +441,7 @@ class AdvancedTabMixin:
                     0, lambda: self._plot_mg(
                         regs, coef_store, mg_coefs, mg_ses, valid_ents))
             except Exception as exc:
-                self.root.after(0, lambda: messagebox.showerror(
+                self.root.after(0, lambda exc=exc: messagebox.showerror(
                     "MG Error", str(exc)))
 
         threading.Thread(target=_work, daemon=True).start()
@@ -547,7 +547,7 @@ class AdvancedTabMixin:
                     0, lambda: self._plot_dk_comparison(
                         regs, ols_res, dk_se, dk_p, n_regs))
             except Exception as exc:
-                self.root.after(0, lambda: messagebox.showerror(
+                self.root.after(0, lambda exc=exc: messagebox.showerror(
                     "DK Error", str(exc)))
 
         threading.Thread(target=_work, daemon=True).start()
@@ -686,7 +686,7 @@ class AdvancedTabMixin:
                     0, lambda: self._plot_lp_irf(
                         dep, shock, H, betas, lo90, hi90, lo68, hi68))
             except Exception as exc:
-                self.root.after(0, lambda: messagebox.showerror(
+                self.root.after(0, lambda exc=exc: messagebox.showerror(
                     "LP-IRF Error", str(exc)))
 
         threading.Thread(target=_work, daemon=True).start()
@@ -838,7 +838,7 @@ class AdvancedTabMixin:
                         df_t, dep, q_var, regs,
                         gamma_opt, grid, ssr_grid, d_opt))
             except Exception as exc:
-                self.root.after(0, lambda: messagebox.showerror(
+                self.root.after(0, lambda exc=exc: messagebox.showerror(
                     "Threshold Error", str(exc)))
 
         threading.Thread(target=_work, daemon=True).start()

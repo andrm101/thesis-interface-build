@@ -155,6 +155,9 @@ class UnitRootTabMixin:
             cb["values"] = num_cols
             if num_cols:
                 cb.current(0)
+        # Default the cointegration pair to two *different* series.
+        if len(num_cols) > 1:
+            self.ur_coint2.current(1)
         self.ur_joh_lb.delete(0, tk.END)
         for c in num_cols:
             self.ur_joh_lb.insert(tk.END, c)
@@ -164,7 +167,7 @@ class UnitRootTabMixin:
     def _trend_code(label):
         return {"Constant": "c",
                 "Constant + Trend": "ct",
-                "No constant": "nc"}.get(label, "c")
+                "No constant": "n"}.get(label, "c")
 
     @staticmethod
     def _det_order(label):
@@ -240,7 +243,7 @@ class UnitRootTabMixin:
                                             write(self.ur_txt, out)))
                 self.root.after(0, lambda: self._plot_level_diff(col, s))
             except Exception as exc:
-                self.root.after(0, lambda: messagebox.showerror("ADF Error", str(exc)))
+                self.root.after(0, lambda exc=exc: messagebox.showerror("ADF Error", str(exc)))
 
         threading.Thread(target=_work, daemon=True).start()
 
@@ -279,7 +282,7 @@ class UnitRootTabMixin:
                                             write(self.ur_txt, out)))
                 self.root.after(0, lambda: self._plot_level_diff(col, s))
             except Exception as exc:
-                self.root.after(0, lambda: messagebox.showerror("KPSS Error", str(exc)))
+                self.root.after(0, lambda exc=exc: messagebox.showerror("KPSS Error", str(exc)))
 
         threading.Thread(target=_work, daemon=True).start()
 
@@ -330,7 +333,7 @@ class UnitRootTabMixin:
                 self.root.after(0, lambda: self._plot_level_diff(
                     col, self._ur_series(col)))
             except Exception as exc:
-                self.root.after(0, lambda: messagebox.showerror("PP Error", str(exc)))
+                self.root.after(0, lambda exc=exc: messagebox.showerror("PP Error", str(exc)))
 
         threading.Thread(target=_work, daemon=True).start()
 
@@ -421,7 +424,7 @@ class UnitRootTabMixin:
                 # IPS (2003) Table 3 standardisation moments
                 moments = {"c": (-1.530, 0.470),
                            "ct": (-2.230, 0.589),
-                           "nc": (-1.000, 0.420)}
+                           "n":  (-1.000, 0.420)}
                 E_t, Var_t = moments.get(trend, (-1.530, 0.470))
 
                 W_bar = np.sqrt(N) * (t_bar - E_t) / np.sqrt(Var_t)
@@ -450,7 +453,7 @@ class UnitRootTabMixin:
                 self.root.after(0, lambda: self._plot_ips(
                     col, entities, t_stats, t_bar, W_bar))
             except Exception as exc:
-                self.root.after(0, lambda: messagebox.showerror("IPS Error", str(exc)))
+                self.root.after(0, lambda exc=exc: messagebox.showerror("IPS Error", str(exc)))
 
         threading.Thread(target=_work, daemon=True).start()
 
@@ -462,6 +465,10 @@ class UnitRootTabMixin:
         col2      = self.ur_coint2.get()
         trend_lbl = self.ur_trend.get()
         trend     = self._trend_code(trend_lbl)
+        if not col1 or not col2 or col1 == col2:
+            messagebox.showwarning(
+                "Engle-Granger", "Pick two different variables to test.")
+            return
 
         def _work():
             try:
@@ -490,7 +497,7 @@ class UnitRootTabMixin:
                                             write(self.ur_txt, out)))
                 self.root.after(0, lambda: self._plot_eg(col1, col2, df_c))
             except Exception as exc:
-                self.root.after(0, lambda: messagebox.showerror("EG Error", str(exc)))
+                self.root.after(0, lambda exc=exc: messagebox.showerror("EG Error", str(exc)))
 
         threading.Thread(target=_work, daemon=True).start()
 
@@ -516,7 +523,7 @@ class UnitRootTabMixin:
                                             write(self.ur_txt, out)))
                 self.root.after(0, lambda: self._plot_johansen(cols, res))
             except Exception as exc:
-                self.root.after(0, lambda: messagebox.showerror(
+                self.root.after(0, lambda exc=exc: messagebox.showerror(
                     "Johansen Error", str(exc)))
 
         threading.Thread(target=_work, daemon=True).start()
