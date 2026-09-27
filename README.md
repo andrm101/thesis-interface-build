@@ -133,6 +133,20 @@ Time)*, clustered SEs, then *Hausman Test*. Repeat per group via the Tab 1
 equality across clusters). For timing, set *Lag depth* and *Build Lag
 Variables*.
 
+**4b · Reverse causality** — *Tab 14 → Dynamic GMM* (`gmm.py`). Because
+productivity Granger-causes R&D (step 5), FE estimates of the R&D effect
+are biased. The fix is Blundell-Bond **system GMM** with R&D treated as
+**endogenous** and instrumented by its own lags, savings and tertiary share
+predetermined, instruments collapsed and lag-limited (N ≈ 23 countries),
+two-step with Windmeijer SEs, year effects demeaned. R&D enters either as
+R&D % GDP or as the Griliches **knowledge stock** per worker (perpetual
+inventory, δ = 15 %, built by `build_panel.py`). A specification counts as
+*valid* only if AR(1) rejects, AR(2) does not, Hansen J lies in (0.05, 0.99)
+and instruments ≤ groups; the preferred one (two lags of y, instrument lags
+2-3) is the specification that passes all four. The estimator reproduces
+pydynpd (the Python port of Stata's xtabond2) exactly for difference GMM
+(`tests/test_gmm.py`).
+
 **5 · Time-series properties** — *Tab 10* ADF / PP / KPSS / IPS and
 **CIPS** (`panel_tests.py`; robust to common shocks, critical values
 simulated for the panel's own N and T). *Tab 11* VAR / IRF / FEVD and
@@ -148,6 +162,7 @@ panel*):
 | Event study | EU accession 2004/2007/2013; never-treated **and** not-yet-treated controls, each with and without cohort pre-trend removal; country bootstrap |
 | Synthetic control | Poland, 2004; donors = never-accession countries; pre-period demeaned; in-space placebos |
 | Double ML | treatment `RD_pct_GDP`(t−1); controls lagged + country means; Random Forest and Lasso learners; CATE in frontier gap; by group |
+| Dynamic GMM | system GMM; y = 100·log `Y_per_worker`; R&D endogenous (`RD_pct_GDP` or `log_RD_stock_per_worker`); 2 lags of y; instrument lags 2-3; optional × Emerging interaction |
 
 **7 · Scenarios** — *Tab 7 → Causal Scenario* projects a country's output
 per worker under a sustained R&D change from the Tab 14 estimates (not from
@@ -179,6 +194,7 @@ fast pass). IDs refer to sections of that file.
 | B9 | EU-accession event study | B | Tab 14 → Event Study (toggle controls / detrend) |
 | B10 | Synthetic control | B | Tab 14 → Synthetic Control |
 | B11 / B12 | Double ML and its sensitivity | B | Tab 14 → Double ML (vary learner; Tab 1 country filter) |
+| B13 | System GMM, R&D endogenous (spec grid, heterogeneity) | B | Tab 14 → Dynamic GMM |
 | — | Causal scenario | B | Tab 7 → Causal Scenario |
 
 ---
@@ -191,17 +207,19 @@ Summary of `results/RESULTS.md`. Significance: \* 10 %, \*\* 5 %, \*\*\* 1 %.
 |---|---|---|
 | Two typologies: Nordic / Central-European leaders vs. Eastern / Southern adopters | Track A K-Means (growth indices): 77 % agreement, silhouette 0.24. **Track B K-Means on R&D levels: 100 % agreement**, silhouette 0.36 (B2) | ✅ with level data |
 | Savings rate is the most robust driver | Track A: positive in all samples (\*\*\*). Track B: positive, weaker (\*\* overall, n.s. for Innovative) | ✅ Track A, ◐ Track B |
-| GERD paradox: negative aggregate, **positive in leaders** | Same-year R&D growth is **negative** for the Innovative group in every FE variant, on both tracks (A3, B3). Lagged 1-3 years it turns positive (A3b) — a **J-curve**. DML finds a positive Innovative effect in 7 of 8 specifications, not significant in the default one (B11, B12) | ✗ as stated; ◐ with lags |
+| GERD paradox: negative aggregate, **positive in leaders** | FE on same-year R&D growth: **negative** for the Innovative group in every variant, on both tracks (A3, B3); lagged 1-3 years it turns positive (A3b) — a J-curve. **Once R&D is treated as endogenous (system GMM, B13)** the Innovative effect is positive and significant (knowledge stock p = 0.046; R&D % GDP p = 0.001) and the Emerging effect is smaller (difference n.s.). DML: positive Innovative effect in 7 of 8 specifications (B12) | ✗ in FE; ✅ direction under GMM |
 | R&D effect declines with distance to the frontier | DML CATE slope negative in 7/8 cells, significant at 5 % in 6/8, but not in the default sample with the Random Forest learner (B12); frontier-FE interaction n.s. (B7) | ◐ suggestive |
 | Hausman prefers FE | χ²(6) = 10.7, p = 0.099 (A2) | ◐ at 10 % only |
 | Conditional β-convergence | Frontier gap strongly positive in growth regressions (B7); log-t rejects global convergence but finds clubs (A5, B4) | ✅ conditional / club |
 | Levels I(1), growth rates I(0) | CIPS: log output per worker unit root; growth index stationary (B5) | ✅ |
-| R&D drives productivity | Dumitrescu-Hurlin: **productivity Granger-causes R&D**, not the reverse (B6); local projections n.s. (B8) | ✗ — reverse causality |
+| R&D drives productivity | Dumitrescu-Hurlin: **productivity Granger-causes R&D**, not the reverse (B6), which biases FE. With R&D instrumented (system GMM, B13), R&D has a positive, significant effect in both valid specifications (β = 4.97, p = 0.019 for the knowledge stock; 3.65, p = 0.014 for R&D % GDP) — but it is **not robust to deeper instrument lags**, where AR(1) stops rejecting (weak instruments); long-run effects are imprecise because ρ ≈ 0.9 | ◐ causal effect under GMM, fragile |
 | EU accession accelerated catch-up | +14 % naive ATT, but strong pre-trends; −4.5 % to +3.4 % after adjustment (B9) | ✗ not identified |
 
 The honest one-line summary: **the typology and the club structure hold;
-the GERD-paradox reversal holds only with lags; and productivity leads R&D
-rather than the other way round.**
+productivity drives R&D, which biases fixed effects; once R&D is
+instrumented (system GMM) its effect is positive — mainly in the Innovative
+economies, as the thesis argued — but that result rests on a narrow set of
+valid instrument choices and should be presented with its diagnostics.**
 
 ---
 
@@ -293,6 +311,7 @@ thesis-interface-build/
 ├── ml_eval.py               # leakage-safe CV, held-out importance
 ├── panel_tests.py           # CIPS, Dumitrescu-Hurlin
 ├── causal.py                # frontier FE, LP, event study, SC, DML, scenarios
+├── gmm.py                   # Arellano-Bond / Blundell-Bond dynamic panel GMM
 ├── panel_data.xlsx          # Track A: thesis panel
 ├── data/
 │   ├── panel_levels.csv     # Track B: rebuilt level panel
@@ -318,7 +337,8 @@ python reproduce.py --quick           # end-to-end smoke run of every analysis
 The causal and convergence estimators are tested by **recovering planted
 effects** from synthetic data (known ATT, synthetic-control weights, LP
 responses, DML θ and CATE, CIPS / Dumitrescu-Hurlin size and power, two
-planted convergence clubs). CI runs lint and the full suite on Python 3.10
+planted convergence clubs, GMM ρ and β under endogeneity). The GMM estimator
+is additionally pinned to pydynpd (xtabond2 port) reference values. CI runs lint and the full suite on Python 3.10
 and 3.12 for every push and pull request.
 
 ### Releasing a Windows build

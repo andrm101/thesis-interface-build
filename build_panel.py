@@ -151,15 +151,49 @@ def build(raw_path: str = DEFAULT_RAW) -> pd.DataFrame:
                        .reset_index(drop=True))
 
 
+RD_DEPRECIATION = 0.15   # Griliches / OECD convention for R&D capital
+
+
+def knowledge_stock(rd: pd.Series, delta: float = RD_DEPRECIATION,
+                    g_years: int = 5) -> pd.Series:
+    """Perpetual-inventory R&D capital for one country's real R&D flow:
+    K_t = (1 − δ)·K_{t−1} + R_t,  K_0 = R_0 / (g + δ),
+    g = average growth of R over the first *g_years* (clipped to [0, 0.2]
+    so a falling or erratic start cannot give a negative or huge K_0)."""
+    r = rd.to_numpy(float)
+    out = np.full_like(r, np.nan)
+    ok = np.flatnonzero(np.isfinite(r) & (r > 0))
+    if len(ok) == 0:
+        return pd.Series(out, index=rd.index)
+    i0 = ok[0]
+    first = r[i0:i0 + g_years + 1]
+    first = first[np.isfinite(first)]
+    g = (np.clip((first[-1] / first[0]) ** (1 / (len(first) - 1)) - 1, 0, 0.2)
+         if len(first) > 1 else 0.05)
+    k = r[i0] / (g + delta)
+    out[i0] = k
+    for t in range(i0 + 1, len(r)):
+        k = (1 - delta) * k + (r[t] if np.isfinite(r[t]) else 0.0)
+        out[t] = k
+    return pd.Series(out, index=rd.index)
+
+
 def add_derived(df: pd.DataFrame) -> pd.DataFrame:
     d = df.copy()
     d["Tertiary_share"] = d["Tertiary_pct"] / 100
+    # Real R&D expenditure and the Griliches knowledge stock
+    d["RD_exp_2015usd"] = (d["RD_pct_GDP"] / 100 * d["GDP_pc_2015usd"]
+                           * d["Population"])
+    d["RD_stock"] = (d.sort_values("Year").groupby("Country")["RD_exp_2015usd"]
+                     .transform(knowledge_stock))
     d["GDP_2015usd"] = d["GDP_pc_2015usd"] * d["Population"]
     d["Y_per_worker"] = d["GDP_2015usd"] / d["Employment"]
     d["log_Y_per_worker"] = np.log(d["Y_per_worker"])
     d["log_GDP_pc"] = np.log(d["GDP_pc_2015usd"])
     d["Savings_rate"] = d["Gross_savings_usd"] / d["GDP_usd"]
     d["Researchers_per_1000_emp"] = d["Researchers"] / d["Employment"] * 1e3
+    d["RD_stock_per_worker"] = d["RD_stock"] / d["Employment"]
+    d["log_RD_stock_per_worker"] = np.log(d["RD_stock_per_worker"])
     d["Patents_per_million"] = d["Patent_apps"] / d["Population"] * 1e6
     # Distance to the productivity frontier: mean log Y/L of the top three
     # countries each year (a single-country max would be Luxembourg).
