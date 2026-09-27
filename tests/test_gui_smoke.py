@@ -29,7 +29,7 @@ def app(monkeypatch):
 
 
 def test_all_tabs_build_and_refresh(app):
-    assert app.nb.index("end") == 13
+    assert app.nb.index("end") == 14
     assert app.load_path(DATA_PATH)
     # Luxembourg is excluded by default: 22 countries x 24 years.
     assert app.df is not None and len(app.df) == 528

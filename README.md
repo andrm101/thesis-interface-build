@@ -83,7 +83,7 @@ screenshots.
 
 ## How to run the analysis for thesis-matching results
 
-The interface is organised as a linear 13-tab pipeline. Following the
+The interface is organised as a linear 14-tab pipeline. Following the
 tabs top-to-bottom reproduces the empirical workflow of the thesis.
 
 ### 1 · Data
@@ -216,6 +216,17 @@ Non-linear and interaction specifications (R&D × Human Capital, etc.).
 Export any tab's text panel to `.txt` and summarise model fits in a
 single consolidated report.
 
+### 14 · Causal  *(needs level variables — click “Load level panel”)*
+Quasi-experimental and causal-ML designs (`causal.py`):
+
+| Button | Design | Question |
+|---|---|---|
+| Frontier Regression | Two-way FE growth regression with R&D × distance-to-frontier (Griffith et al. 2004; Acemoglu, Aghion & Zilibotti 2006) | Does R&D pay more near or far from the frontier? |
+| Local Projections | Jordà (2005) panel LPs, linear or state-dependent (catch-up vs. near-frontier, Emerging vs. Innovative) | How does productivity respond 0-H years after an R&D change? |
+| Event Study | Callaway & Sant'Anna (2021) staggered DiD, never- or not-yet-treated controls, optional pre-trend detrending, country bootstrap | Effect of EU accession or custom policy events (`Poland:2016, …`) |
+| Synthetic Control | Abadie et al. (2010), optional demeaning, in-space placebo p-value | Single-country policy episode |
+| Double ML | Partially linear DML (Chernozhukov et al. 2018), cross-fitted by country, CATE in frontier gap, by group | Average and heterogeneous effect of R&D intensity on growth |
+
 ---
 
 ## Matching the thesis' reported results
@@ -300,6 +311,7 @@ thesis-interface-build/
 ├── clubs.py                 # Phillips-Sul log-t test + convergence clubs
 ├── build_panel.py           # raw workbook → data/panel_levels.csv (levels)
 ├── ml_eval.py               # leakage-safe CV (grouped / forward-chaining)
+├── causal.py                # frontier FE, local projections, event study, SC, DML
 ├── panel_data.xlsx          # shipped sample: 23 countries, 2000-2023
 ├── tabs/
 │   ├── tab_data.py          # 1 · Data         — loading, filtering, transforms
@@ -314,7 +326,8 @@ thesis-interface-build/
 │   ├── tab_unitroot.py      # 10 · Unit Roots  — ADF, PP, Im-Pesaran-Shin
 │   ├── tab_var.py           # 11 · VAR / IRF   — impulse responses
 │   ├── tab_advanced.py      # 12 · Advanced    — interactions, non-linearities
-│   └── tab_report.py        # 13 · Report      — consolidated export
+│   ├── tab_report.py        # 13 · Report      — consolidated export
+│   └── tab_causal.py        # 14 · Causal      — LP, event study, SC, DML
 ├── data/raw/BD_Licenta.xlsx # raw WDI + Eurostat workbook
 ├── data/panel_levels.csv    # rebuilt panel (python build_panel.py)
 ├── docs/                    # data audit, data sources, hypotheses
