@@ -176,7 +176,23 @@ countries (or later years); the leaky random-K-fold R² is shown beside it;
 
 `python reproduce.py` regenerates all of the following into
 [`results/RESULTS.md`](results/RESULTS.md) (≈ 2 minutes; `--quick` for a
-fast pass). IDs refer to sections of that file.
+fast pass). IDs refer to sections of that file. Add `--figures` to also
+write the thesis figures to [`results/figures/`](results/figures) (PNG and
+PDF) and the main tables to [`results/tables/`](results/tables) as LaTeX
+`booktabs` (`\input{}` them in the thesis):
+
+| Figure | Content |
+|---|---|
+| `fig1_typology_pca` | K-Means typology on R&D levels (PCA) |
+| `fig2_convergence_clubs` | Phillips-Sul clubs, log output per worker |
+| `fig3_jcurve_lags` | FE coefficient on lagged R&D growth by group — the J-curve |
+| `fig4_event_study` | EU-accession event study, four control/detrending variants |
+| `fig5_gmm_specifications` | System-GMM R&D coefficient across the specification grid |
+| `fig6_dml_sensitivity` | DML heterogeneity slope by sample and learner |
+| `fig7_beta_convergence` | β-convergence by typology, with the Innovative group zoomed |
+
+Figures use a colour-blind-validated palette, and every series also has
+its own marker shape, so they remain readable in greyscale print.
 
 | ID | Result | Track | In the GUI |
 |---|---|---|---|
@@ -195,6 +211,7 @@ fast pass). IDs refer to sections of that file.
 | B10 | Synthetic control | B | Tab 14 → Synthetic Control |
 | B11 / B12 | Double ML and its sensitivity | B | Tab 14 → Double ML (vary learner; Tab 1 country filter) |
 | B13 | System GMM, R&D endogenous (spec grid, heterogeneity) | B | Tab 14 → Dynamic GMM |
+| C1 | β-convergence by typology | B | Tab 1 Innovative / Emerging → Tab 4 → Absolute β-Convergence |
 | — | Causal scenario | B | Tab 7 → Causal Scenario |
 
 ---
@@ -210,16 +227,17 @@ Summary of `results/RESULTS.md`. Significance: \* 10 %, \*\* 5 %, \*\*\* 1 %.
 | GERD paradox: negative aggregate, **positive in leaders** | FE on same-year R&D growth: **negative** for the Innovative group in every variant, on both tracks (A3, B3); lagged 1-3 years it turns positive (A3b) — a J-curve. **Once R&D is treated as endogenous (system GMM, B13)** the Innovative effect is positive and significant (knowledge stock p = 0.046; R&D % GDP p = 0.001) and the Emerging effect is smaller (difference n.s.). DML: positive Innovative effect in 7 of 8 specifications (B12) | ✗ in FE; ✅ direction under GMM |
 | R&D effect declines with distance to the frontier | DML CATE slope negative in 7/8 cells, significant at 5 % in 6/8, but not in the default sample with the Random Forest learner (B12); frontier-FE interaction n.s. (B7) | ◐ suggestive |
 | Hausman prefers FE | χ²(6) = 10.7, p = 0.099 (A2) | ◐ at 10 % only |
-| Conditional β-convergence | Frontier gap strongly positive in growth regressions (B7); log-t rejects global convergence but finds clubs (A5, B4) | ✅ conditional / club |
+| β-convergence in both clusters | Emerging: β = −2.20 (p < 0.001, ≈ 3 %/yr); full sample −1.64 (C1). **Innovative: β = +1.51 (p = 0.001) — divergence**, though over a narrow range of initial levels (8 countries). Frontier gap strongly positive in panel growth regressions (B7); log-t rejects global convergence but finds clubs (A5, B4) | ✅ Emerging / club; ✗ within leaders |
 | Levels I(1), growth rates I(0) | CIPS: log output per worker unit root; growth index stationary (B5) | ✅ |
 | R&D drives productivity | Dumitrescu-Hurlin: **productivity Granger-causes R&D**, not the reverse (B6), which biases FE. With R&D instrumented (system GMM, B13), R&D has a positive, significant effect in both valid specifications (β = 4.97, p = 0.019 for the knowledge stock; 3.65, p = 0.014 for R&D % GDP) — but it is **not robust to deeper instrument lags**, where AR(1) stops rejecting (weak instruments); long-run effects are imprecise because ρ ≈ 0.9 | ◐ causal effect under GMM, fragile |
 | EU accession accelerated catch-up | +14 % naive ATT, but strong pre-trends; −4.5 % to +3.4 % after adjustment (B9) | ✗ not identified |
 
-The honest one-line summary: **the typology and the club structure hold;
-productivity drives R&D, which biases fixed effects; once R&D is
-instrumented (system GMM) its effect is positive — mainly in the Innovative
-economies, as the thesis argued — but that result rests on a narrow set of
-valid instrument choices and should be presented with its diagnostics.**
+The honest one-line summary: **the typology and the club structure hold,
+and the emerging economies are converging fast; productivity drives R&D,
+which biases fixed effects; once R&D is instrumented (system GMM) its effect
+is positive — mainly in the Innovative economies, as the thesis argued — but
+that result rests on a narrow set of valid instrument choices and should be
+presented with its diagnostics.**
 
 ---
 
@@ -312,11 +330,12 @@ thesis-interface-build/
 ├── panel_tests.py           # CIPS, Dumitrescu-Hurlin
 ├── causal.py                # frontier FE, LP, event study, SC, DML, scenarios
 ├── gmm.py                   # Arellano-Bond / Blundell-Bond dynamic panel GMM
+├── figures.py               # thesis figures (PNG/PDF) and LaTeX tables
 ├── panel_data.xlsx          # Track A: thesis panel
 ├── data/
 │   ├── panel_levels.csv     # Track B: rebuilt level panel
 │   └── raw/                 # raw workbook (local, git-ignored)
-├── results/RESULTS.md       # output of reproduce.py
+├── results/                 # RESULTS.md, figures/, tables/ (reproduce.py)
 ├── tabs/                    # one mixin per GUI tab (1-14)
 ├── docs/                    # DATA_AUDIT, DATA_SOURCES, HYPOTHESES
 ├── tests/                   # pytest (data, modules, planted-effect recovery, GUI smoke)

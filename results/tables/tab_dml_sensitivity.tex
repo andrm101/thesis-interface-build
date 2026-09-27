@@ -1,0 +1,20 @@
+\begin{table}[htbp]
+\centering\small
+\caption{Double machine learning: sensitivity to sample and learner}
+\label{tab:dml}
+\begin{tabular}{lrrrrrrr}
+\toprule
+Sample & Learner & $\theta$ & $\theta$ p & $\partial$$\theta$/$\partial$gap & slope p & $\theta$ Innovative & $\theta$ Emerging \\
+\midrule
+Luxembourg dropped, 1998+ & Random Forest & -0.044 & 0.762 & -0.860 & 0.002$^{***}$ & 0.120 & -0.245 \\
+Luxembourg dropped, 1998+ & Lasso & -0.210 & 0.318 & -0.656 & 0.004$^{***}$ & 0.142 & -0.460 \\
+Luxembourg dropped, 2000+ & Random Forest & 0.039 & 0.807 & -0.712 & 0.036$^{**}$ & 0.146 & -0.088 \\
+Luxembourg dropped, 2000+ & Lasso & -0.154 & 0.425 & -0.539 & 0.012$^{**}$ & 0.178 & -0.360 \\
+Lux. + Malta dropped, 2000+ (default) & Random Forest & 0.262 & 0.041$^{**}$ & -0.187 & 0.520 & 0.155 & 0.405 \\
+Lux. + Malta dropped, 2000+ (default) & Lasso & 0.011 & 0.955 & -0.676 & 0.004$^{***}$ & 0.209 & -0.186 \\
+none dropped, 2000+ & Random Forest & 0.107 & 0.417 & -0.381 & 0.025$^{**}$ & 0.227 & -0.091 \\
+none dropped, 2000+ & Lasso & -0.346 & 0.014$^{**}$ & 0.146 & 0.266 & -0.359 & -0.320 \\
+\bottomrule
+\end{tabular}
+\par\footnotesize Significance: $^{*}$ 10\%, $^{**}$ 5\%, $^{***}$ 1\%.
+\end{table}
