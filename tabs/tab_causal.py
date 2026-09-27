@@ -25,6 +25,7 @@ from matplotlib.figure import Figure
 from scipy import stats
 
 import causal
+import gmm
 import theme
 from constants import INNOVATIVE_CLUSTER
 from helpers import make_text, write, clear_txt, embed_figure
@@ -119,6 +120,27 @@ class CausalTabMixin:
         ttk.Combobox(opts2, textvariable=self.cz_learner,
                      values=("Random Forest", "Lasso"), state="readonly",
                      width=15).grid(row=2, column=1, sticky=tk.W)
+        self.gm_method = tk.StringVar(value="System")
+        self.gm_ylags  = tk.IntVar(value=2)
+        self.gm_lo     = tk.IntVar(value=2)
+        self.gm_hi     = tk.IntVar(value=3)
+        self.gm_inter  = tk.BooleanVar(value=True)
+        ttk.Label(opts2, text="GMM:").grid(row=3, column=0, sticky=tk.W)
+        gm = ttk.Frame(opts2); gm.grid(row=3, column=1, columnspan=3,
+                                       sticky=tk.W)
+        ttk.Combobox(gm, textvariable=self.gm_method, width=10,
+                     values=("System", "Difference"),
+                     state="readonly").pack(side=tk.LEFT)
+        ttk.Label(gm, text=" y lags").pack(side=tk.LEFT)
+        ttk.Spinbox(gm, from_=1, to=2, width=3,
+                    textvariable=self.gm_ylags).pack(side=tk.LEFT)
+        ttk.Label(gm, text=" instr. lags").pack(side=tk.LEFT)
+        ttk.Spinbox(gm, from_=2, to=4, width=3,
+                    textvariable=self.gm_lo).pack(side=tk.LEFT)
+        ttk.Spinbox(gm, from_=2, to=6, width=3,
+                    textvariable=self.gm_hi).pack(side=tk.LEFT)
+        ttk.Checkbutton(gm, text="× Emerging",
+                        variable=self.gm_inter).pack(side=tk.LEFT, padx=4)
 
         r2 = ttk.Frame(ctrl); r2.pack(fill=tk.X, pady=4)
         for label, cmd, style in (
@@ -126,7 +148,8 @@ class CausalTabMixin:
                 ("Local Projections",   self._cz_lp,       "TButton"),
                 ("Event Study",         self._cz_event,    "Accent.TButton"),
                 ("Synthetic Control",   self._cz_synth,    "TButton"),
-                ("Double ML",           self._cz_dml,      "TButton")):
+                ("Double ML",           self._cz_dml,      "TButton"),
+                ("Dynamic GMM",         self._cz_gmm,      "TButton")):
             ttk.Button(r2, text=label, style=style, command=cmd).pack(
                 side=tk.LEFT, padx=3)
 
@@ -494,3 +517,75 @@ class CausalTabMixin:
         self._cz_run("Double ML",
                      lambda: causal.dml_plr(df, y, rd, ctrls, gap, groups,
                                             learner), show)
+
+    # ── 6. Dynamic panel GMM ──────────────────────────────────────────────
+    def _cz_gmm(self):
+        if not self._cz_ready():
+            return
+        y, rd = self.cz_y.get(), self.cz_rd.get()
+        ctrls = [c for c in self._cz_controls() if c not in (y, rd)]
+        lo, hi = int(self.gm_lo.get()), int(self.gm_hi.get())
+        if hi < lo:
+            messagebox.showwarning("GMM", "Instrument lag range: upper < lower.")
+            return
+        method = self.gm_method.get().lower()
+        ylags, inter = int(self.gm_ylags.get()), self.gm_inter.get()
+        df = self.df.copy()
+        ycol = f"100log_{y}"
+        df[ycol] = 100 * np.log(df[y].where(df[y] > 0))
+        endog = [rd]
+        if inter:
+            g = self._cz_groups()
+            df[f"{rd} × Emerging"] = df[rd] * (
+                df["Country"].map(g) == "Emerging").astype(float)
+            endog.append(f"{rd} × Emerging")
+
+        def show(r):
+            L = [f"DYNAMIC PANEL GMM — {r.method}\n{'='*62}\n"
+                 f"  y = 100·log {y};  endogenous: {', '.join(endog)}\n"
+                 f"  predetermined: {', '.join(ctrls) or '—'}\n"
+                 f"  {r.notes[0]}\n  groups N = {r.n_groups}, obs = "
+                 f"{r.n_obs}, instruments = {r.n_instruments}\n\n",
+                 f"  {'Variable':<34}{'Coef':>9}{'SE':>9}{'p':>11}\n"]
+            for _, row in r.table().iterrows():
+                L.append(f"  {row.Variable[:33]:<34}{row.Coef:>9.3f}"
+                         f"{row.SE:>9.3f}{self._p(row.p):>11}\n")
+            L.append("\n  Long-run effects β/(1−Σρ):\n")
+            for k_, (e, se) in r.long_run.items():
+                p = 2 * (1 - stats.norm.cdf(abs(e / se))) if se else np.nan
+                L.append(f"    {k_[:32]:<33}{e:>9.2f}  (SE {se:.2f}) "
+                         f"p={self._p(p)}\n")
+            ok = lambda c: "✓" if c else "✗"  # noqa: E731
+            L.append(
+                "\n  Diagnostics:\n"
+                f"    AR(1) p = {r.ar1_p:.3f}  {ok(r.ar1_p < 0.10)} should "
+                "reject (differenced errors are MA(1))\n"
+                f"    AR(2) p = {r.ar2_p:.3f}  {ok(r.ar2_p > 0.05)} should "
+                "NOT reject — else raise y lags or instrument lags\n"
+                f"    Hansen J({r.hansen_df}) p = {r.hansen_p:.3f}  "
+                f"{ok(0.05 < r.hansen_p < 0.99)} should not reject; ≈ 1 "
+                "signals too many instruments\n"
+                f"    Instruments {r.n_instruments} vs groups {r.n_groups}  "
+                f"{ok(r.n_instruments <= r.n_groups)}\n")
+            for n in r.notes[1:]:
+                L.append(f"  {n}\n")
+            clear_txt(self.cz_txt); write(self.cz_txt, "".join(L))
+            fig = self._cz_fig(9, 5)
+            ax = fig.add_subplot(111)
+            t = r.table()
+            t = t[~t.Variable.isin(["const"])]
+            ax.errorbar(t.Coef, np.arange(len(t)), xerr=1.96 * t.SE,
+                        fmt="o", color=theme.TEAL, ecolor=theme.FG, capsize=4)
+            ax.set_yticks(np.arange(len(t)), t.Variable)
+            ax.axvline(0, color=theme.RED, lw=0.8, ls="--")
+            ax.set_title(f"{r.method}: coefficients (95 % CI)",
+                         color=theme.FG)
+            ax.tick_params(labelsize=8)
+            self._cz_show(fig)
+
+        self._cz_run("Dynamic GMM",
+                     lambda: gmm.estimate(df, ycol, endog=endog,
+                                          predet=ctrls, method=method,
+                                          lags=(lo, hi), y_lags=ylags),
+                     show)
+

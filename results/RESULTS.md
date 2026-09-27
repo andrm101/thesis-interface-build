@@ -166,6 +166,36 @@ Full-sample log-t: t = -8.02 (rejects convergence)
 | Innovative | 0.155 | 0.110 | 0.158 | 176 | 8 |
 | Emerging | 0.405 | 0.259 | 0.118 | 330 | 15 |
 
+**B13 · Reverse causality: system GMM with R&D endogenous (Tab 14 → Dynamic GMM):**
+
+y = 100·log output per worker; R&D instrumented with its own lags (collapsed);
+savings and tertiary share predetermined; two-step, Windmeijer SEs; year effects
+demeaned. *valid* = AR(1) rejects, AR(2) does not, Hansen J in (0.05, 0.99), instruments ≤ groups.
+
+| R&D measure | y lags | instr. lags | β R&D | p | long-run | LR SE | AR(2) p | Hansen p | #Z | valid | preferred |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| log_RD_stock_per_worker | 1 | 2-3 | 1.461 | 0.611 | 19.101 | 24.762 | 0.003 | 0.067 | 13 | ✗ |  |
+| log_RD_stock_per_worker | 1 | 3-4 | 2.967 | 0.128 | 27.613 | 10.017 | 0.003 | 0.318 | 13 | ✗ |  |
+| log_RD_stock_per_worker | 1 | 3-5 | 5.074 | 0.014** | 34.190 | 6.058 | 0.004 | 0.184 | 17 | ✗ |  |
+| log_RD_stock_per_worker | 2 | 2-3 | 4.970 | 0.019** | 46.723 | 4.848 | 0.062 | 0.081 | 13 | ✓ | ★ |
+| log_RD_stock_per_worker | 2 | 3-4 | 4.420 | 0.323 | 38.534 | 21.618 | 0.230 | 0.096 | 13 | ✗ |  |
+| log_RD_stock_per_worker | 2 | 3-5 | 3.395 | 0.245 | 31.679 | 19.161 | 0.086 | 0.144 | 17 | ✗ |  |
+| RD_pct_GDP | 1 | 2-3 | 2.602 | 0.147 | 34.434 | 18.228 | 0.003 | 0.047 | 13 | ✗ |  |
+| RD_pct_GDP | 1 | 3-4 | 3.379 | 0.000*** | 36.421 | 5.887 | 0.003 | 0.978 | 13 | ✗ |  |
+| RD_pct_GDP | 1 | 3-5 | 4.396 | 0.000*** | 42.142 | 8.566 | 0.004 | 0.398 | 17 | ✗ |  |
+| RD_pct_GDP | 2 | 2-3 | 3.645 | 0.014** | 61.359 | 21.588 | 0.052 | 0.066 | 13 | ✓ | ★ |
+| RD_pct_GDP | 2 | 3-4 | 3.836 | 0.000*** | 39.125 | 9.495 | 0.011 | 0.956 | 13 | ✗ |  |
+| RD_pct_GDP | 2 | 3-5 | 4.514 | 0.000*** | 41.898 | 11.737 | 0.012 | 0.501 | 17 | ✗ |  |
+
+Heterogeneity in the preferred specification (★):
+
+| R&D measure | β Innovative | p (Inn.) | Δ Emerging | p (Δ) | AR(2) p | Hansen p |
+|---|---|---|---|---|---|---|
+| log_RD_stock_per_worker | 4.089 | 0.046** | -0.330 | 0.272 | 0.038 | 0.253 |
+| RD_pct_GDP | 3.800 | 0.001*** | -1.015 | 0.192 | 0.055 | 0.212 |
+
+Dynamic two-way FE with the same regressors (Nickell-biased, R&D treated as exogenous): log_RD_stock_per_worker: β = +1.078 (p = 0.129); RD_pct_GDP: β = +0.387 (p = 0.257).
+
 **B12 · DML sensitivity (sample × learner):**
 
 | Sample | Learner | θ | θ p | ∂θ/∂gap | slope p | θ Innovative | θ Emerging |

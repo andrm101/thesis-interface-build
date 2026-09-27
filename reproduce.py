@@ -35,6 +35,7 @@ from sklearn.preprocessing import StandardScaler
 
 import causal
 import clubs
+import gmm
 import ml_eval
 import outliers
 import panel_tests
@@ -196,6 +197,69 @@ def ml_cv(df, target, feats):
     return pd.DataFrame(rows)
 
 
+def gmm_section(df):
+    """B13: reverse-causality-robust estimates (system GMM, R&D endogenous)."""
+    d = df.copy()
+    d["ly"] = 100 * d["log_Y_per_worker"]
+    g = groups_apriori(d)
+    em = (d["Country"].map(g) == "Emerging").astype(float)
+    ctrls = ["Savings_rate", "Tertiary_share"]
+    rows = []
+    for x in ("log_RD_stock_per_worker", "RD_pct_GDP"):
+        for yl in (1, 2):
+            for lags in ((2, 3), (3, 4), (3, 5)):
+                r = gmm.estimate(d, "ly", endog=[x], predet=ctrls,
+                                 method="system", lags=lags, y_lags=yl)
+                valid = (r.ar1_p < 0.10 and r.ar2_p > 0.05
+                         and 0.05 < r.hansen_p < 0.99
+                         and r.n_instruments <= r.n_groups)
+                lr, lrse = r.long_run[x]
+                rows.append({"R&D measure": x, "y lags": yl,
+                             "instr. lags": f"{lags[0]}-{lags[1]}",
+                             "β R&D": r.params[x], "p": pstar(r.pvalues[x]),
+                             "long-run": lr, "LR SE": lrse,
+                             "AR(2) p": r.ar2_p, "Hansen p": r.hansen_p,
+                             "#Z": r.n_instruments,
+                             "valid": "✓" if valid else "✗",
+                             "preferred": "★" if (yl == 2 and lags == (2, 3))
+                             else ""})
+    grid = pd.DataFrame(rows)
+    het = []
+    for x in ("log_RD_stock_per_worker", "RD_pct_GDP"):
+        dd = d.assign(**{f"{x}×Emerging": d[x] * em})
+        r = gmm.estimate(dd, "ly", endog=[x, f"{x}×Emerging"], predet=ctrls,
+                         method="system", lags=(2, 3), y_lags=2)
+        het.append({"R&D measure": x,
+                    "β Innovative": r.params[x],
+                    "p (Inn.)": pstar(r.pvalues[x]),
+                    "Δ Emerging": r.params[f"{x}×Emerging"],
+                    "p (Δ)": pstar(r.pvalues[f"{x}×Emerging"]),
+                    "AR(2) p": r.ar2_p, "Hansen p": r.hansen_p})
+    # Nickell-biased dynamic FE for comparison
+    dd = d.sort_values(["Country", "Year"]).copy()
+    gg = dd.groupby("Country")["ly"]
+    dd["L1"], dd["L2"] = gg.shift(1), gg.shift(2)
+    fes = []
+    for x in ("log_RD_stock_per_worker", "RD_pct_GDP"):
+        e = dd.dropna(subset=["ly", "L1", "L2", x] + ctrls).set_index(
+            ["Country", "Year"])
+        f = PanelOLS(e["ly"], e[["L1", "L2", x] + ctrls], entity_effects=True,
+                     time_effects=True).fit(cov_type="clustered",
+                                            cluster_entity=True)
+        fes.append(f"{x}: β = {f.params[x]:+.3f} (p = {pstar(f.pvalues[x])})")
+    return ["**B13 · Reverse causality: system GMM with R&D endogenous "
+            "(Tab 14 → Dynamic GMM):**\n",
+            "y = 100·log output per worker; R&D instrumented with its own "
+            "lags (collapsed);\nsavings and tertiary share predetermined; "
+            "two-step, Windmeijer SEs; year effects\ndemeaned. *valid* = "
+            "AR(1) rejects, AR(2) does not, Hansen J in (0.05, 0.99), "
+            "instruments ≤ groups.\n", md_table(grid), "",
+            "Heterogeneity in the preferred specification (★):\n",
+            md_table(pd.DataFrame(het)), "",
+            "Dynamic two-way FE with the same regressors (Nickell-biased, R&D "
+            "treated as exogenous): " + "; ".join(fes) + ".\n"]
+
+
 # ── tracks ─────────────────────────────────────────────────────────────────
 def track_a(quick):
     L = ["## Track A — thesis panel (`panel_data.xlsx`)\n",
@@ -323,6 +387,7 @@ def track_b(quick):
           f"{dm.se:.3f}, p = {pstar(dm.p)}); ∂θ/∂gap = {dm.cate_slope:.3f} "
           f"(SE {dm.cate_se:.3f}, p = {pstar(pz)}).\n",
           md_table(dm.by_group.assign(p=dm.by_group.p.map(pstar))), ""]
+    L += gmm_section(df)
     rows = []
     d0 = pd.read_csv(LEVELS)
     grid = (("Luxembourg dropped, 1998+", ["Luxembourg"], 1998),

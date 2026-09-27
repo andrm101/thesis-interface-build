@@ -11,7 +11,7 @@ wherever a family is run over many variables.
 |---|---|---|---|---|
 | H1 | Savings (physical-capital accumulation) raises productivity | Solow (1956); Mankiw, Romer & Weil (1992) | Panel FE on `Y by L` | ✅ Tab 3 |
 | H2 | Human capital raises productivity (augmented Solow) | Mankiw, Romer & Weil (1992) | Panel FE; Tab 2 correlations | ✅ Tab 3, Tab 2 |
-| H3 | Aggregate R&D–productivity link is negative/weak but positive among leaders (GERD paradox) | Thesis; Griffith, Redding & Van Reenen (2004) | Cluster-wise FE; pooled vs. within correlations (Simpson check) | ✅ Tab 3/8, Tab 2 |
+| H3 | Aggregate R&D–productivity link is negative/weak but positive among leaders (GERD paradox) | Thesis; Griffith, Redding & Van Reenen (2004) | Cluster-wise FE; pooled vs. within correlations (Simpson check); system GMM with R&D endogenous | ✅ Tab 3/8, Tab 2, Tab 14 Dynamic GMM |
 | H4 | R&D returns depend on absorptive capacity (human capital) | Cohen & Levinthal (1990); Griffith et al. (2004) | R&D × human-capital interaction; threshold regression | ✅ Tab 12 |
 | H5 | Conditional β- and σ-convergence | Barro & Sala-i-Martin (1992) | Cross-sectional OLS on initial level; dispersion over time | ✅ Tab 4 |
 | H6 | Countries converge in **clubs**, not globally | Phillips & Sul (2007) | log-t test + clustering algorithm | ✅ Tab 4 (growth-path clubs); 📥 PWT levels for level clubs |
