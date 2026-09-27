@@ -3,6 +3,7 @@ tabs/tab_scenarios.py  —  Growth scenario simulator and J-Curve policy shock.
 Mixin: ScenariosTabMixin
 """
 
+import threading
 import tkinter as tk
 from tkinter import ttk, messagebox
 
@@ -10,6 +11,7 @@ import numpy as np
 import pandas as pd
 from matplotlib.figure import Figure
 
+import causal
 import theme
 from helpers import make_text, write, clear_txt, embed_figure
 
@@ -137,6 +139,33 @@ class ScenariosTabMixin:
                    style="Accent.TButton",
                    command=self._run_jcurve).pack(anchor=tk.W, pady=4)
 
+        # Causal scenario: projections from estimated causal effects
+        cs = ttk.LabelFrame(
+            ctrl, text="Causal Scenario  (effects estimated in Tab 14 — "
+                       "needs the level panel)", padding=8)
+        cs.pack(fill=tk.X, pady=6)
+        self.cs_country = ttk.Combobox(cs, width=18, state="readonly")
+        self.cs_delta   = tk.DoubleVar(value=0.5)
+        self.cs_h       = tk.IntVar(value=6)
+        self.cs_lp      = tk.BooleanVar(value=True)
+        self.cs_dml     = tk.BooleanVar(value=True)
+        ttk.Label(cs, text="Country:").pack(side=tk.LEFT)
+        self.cs_country.pack(side=tk.LEFT, padx=4)
+        ttk.Label(cs, text="  Sustained Δ R&D (units of treatment, "
+                           "e.g. pp of GDP):").pack(side=tk.LEFT)
+        ttk.Spinbox(cs, from_=-2.0, to=3.0, increment=0.1, width=5,
+                    textvariable=self.cs_delta).pack(side=tk.LEFT, padx=4)
+        ttk.Label(cs, text="  Horizon:").pack(side=tk.LEFT)
+        ttk.Spinbox(cs, from_=2, to=10, width=4,
+                    textvariable=self.cs_h).pack(side=tk.LEFT, padx=4)
+        ttk.Checkbutton(cs, text="Local projections",
+                        variable=self.cs_lp).pack(side=tk.LEFT, padx=6)
+        ttk.Checkbutton(cs, text="Double ML",
+                        variable=self.cs_dml).pack(side=tk.LEFT, padx=6)
+        ttk.Button(cs, text="Run Causal Scenario", style="Accent.TButton",
+                   command=self._run_causal_scenario).pack(side=tk.LEFT,
+                                                          padx=8)
+
         pane = ttk.PanedWindow(parent, orient=tk.HORIZONTAL)
         pane.pack(fill=tk.BOTH, expand=True, padx=12, pady=4)
         left  = ttk.Frame(pane); pane.add(left,  weight=1)
@@ -150,6 +179,10 @@ class ScenariosTabMixin:
         countries = sorted(self.df["Country"].unique())
         self.sc_country["values"] = ["All Countries"] + countries
         self.sc_country.current(0)
+        self.cs_country["values"] = countries
+        if self.cs_country.get() not in countries and countries:
+            self.cs_country.set("Romania" if "Romania" in countries
+                                else countries[0])
 
     def _set_preset(self, val: float):
         for sv in self.sc_sliders.values():
@@ -377,3 +410,114 @@ class ScenariosTabMixin:
         self.status_var.set(
             f"J-Curve complete — trough t+{trough}, "
             f"LT gain +{ltgain*100:.1f}%")
+
+    # ══════════════════════════════════════════════════════════════════════
+    # Causal scenario (effect-based, replaces ML extrapolation)
+    # ══════════════════════════════════════════════════════════════════════
+    def _run_causal_scenario(self):
+        if not self._check_data():
+            return
+        self._refresh_sc_countries()
+        # Share the variable choices of Tab 14.
+        y, rd, gap = self.cz_y.get(), self.cz_rd.get(), self.cz_gap.get()
+        missing = [c for c in (y, rd, gap) if c not in self.df.columns]
+        if missing:
+            messagebox.showwarning(
+                "Causal scenario",
+                f"Missing {', '.join(missing)} — load the level panel "
+                "(Tab 14 → Load level panel).")
+            return
+        if not (self.cs_lp.get() or self.cs_dml.get()):
+            messagebox.showwarning("Causal scenario", "Tick an engine.")
+            return
+        country = self.cs_country.get()
+        delta, H = float(self.cs_delta.get()), int(self.cs_h.get())
+        ctrls = [c for c in ("Savings_rate", "Tertiary_share")
+                 if c in self.df.columns] + [gap]
+        df = self.df.copy()
+        use_lp, use_dml = self.cs_lp.get(), self.cs_dml.get()
+        self.status_var.set("Estimating causal effects for the scenario…")
+
+        def work():
+            srt = df.sort_values(["Country", "Year"])
+            lag_gap = srt.groupby("Country")[gap].shift(1).reindex(df.index)
+            med = df[gap].median()
+            cur_gap = float(srt[srt["Country"] == country][gap].dropna()
+                            .iloc[-1])
+            lp = st_name = dml = None
+            if use_lp:
+                state = (lag_gap > med).astype(float).where(lag_gap.notna())
+                lp = causal.local_projections(
+                    df, y, rd, H, 2, state, ("Catch-up", "Near frontier"))
+                st_name = "Catch-up" if cur_gap > med else "Near frontier"
+            if use_dml:
+                dml = causal.dml_plr(df, y, rd, ctrls, gap)
+            return causal.causal_scenario(df, y, country, delta, H, lp,
+                                          st_name, dml, cur_gap), \
+                st_name, cur_gap, med
+
+        def show(res):
+            out, st_name, cur_gap, med = res
+            L = [f"CAUSAL SCENARIO — {country}: {rd} "
+                 f"{delta:+.2f} (sustained)\n{'='*62}\n",
+                 f"  Baseline: last observed {y} extended at the country's "
+                 f"5-year\n  average growth "
+                 f"({out.attrs['baseline_growth_pct']:+.2f} % a year).\n",
+                 f"  {gap} now {cur_gap:.2f} (sample median {med:.2f}) → "
+                 f"{'catch-up' if cur_gap > med else 'near-frontier'} "
+                 f"regime.\n"]
+            if "dml_theta" in out.attrs:
+                L.append(f"  DML growth effect at this gap: "
+                         f"{out.attrs['dml_theta']:+.3f} % per unit "
+                         f"(SE {out.attrs['dml_se']:.3f})\n")
+            L.append(f"\n  {'Year':<6}{'Baseline':>11}")
+            eng = [e for e in ("lp", "dml") if f"{e}_mid" in out]
+            for e in eng:
+                L.append(f"{e.upper() + ' (95% CI)':>30}")
+            L.append("\n")
+            for _, r in out.iterrows():
+                L.append(f"  {int(r.Year):<6}{r.baseline:>11,.0f}")
+                for e in eng:
+                    L.append(f"{r[e + '_mid']:>11,.0f} "
+                             f"[{r[e + '_lo']:,.0f}–{r[e + '_hi']:,.0f}]")
+                L.append("\n")
+            last = out.iloc[-1]
+            for e in eng:
+                pct = 100 * (last[e + "_mid"] / last.baseline - 1)
+                L.append(f"\n  {e.upper()}: {pct:+.2f} % vs baseline after "
+                         f"{H} years")
+            L.append("\n\n  Effects are causal estimates from Tab 14 "
+                     "(state-dependent LPs;\n  DML with a frontier-gap CATE),"
+                     " not ML extrapolation. The gap is held\n  at its "
+                     "current value.\n")
+            clear_txt(self.sc_txt)
+            write(self.sc_txt, "".join(L))
+            for w in self.sc_plot_frame.winfo_children():
+                w.destroy()
+            fig = Figure(figsize=(10, 6), facecolor=theme.BG)
+            ax = fig.add_subplot(111)
+            ax.plot(out.Year, out.baseline, color=theme.GRAY, lw=2,
+                    ls="--", label="Baseline (trend)")
+            for e, colr in (("lp", theme.TEAL), ("dml", theme.ACCENT)):
+                if f"{e}_mid" in out:
+                    ax.plot(out.Year, out[f"{e}_mid"], color=colr, lw=2,
+                            label=f"{e.upper()} scenario")
+                    ax.fill_between(out.Year, out[f"{e}_lo"],
+                                    out[f"{e}_hi"], color=colr, alpha=0.15)
+            ax.set_ylabel(y)
+            ax.set_title(f"{country}: {rd} {delta:+.2f} — causal scenario "
+                         "(95 % CI)", color=theme.FG)
+            ax.legend(fontsize=8)
+            fig.tight_layout()
+            embed_figure(fig, self.sc_plot_frame)
+            self.status_var.set("Causal scenario done")
+
+        def _t():
+            try:
+                res = work()
+                self.root.after(0, lambda: show(res))
+            except Exception as exc:
+                self.root.after(0, lambda exc=exc: messagebox.showerror(
+                    "Causal scenario Error", str(exc)))
+        threading.Thread(target=_t, daemon=True).start()
+

@@ -16,9 +16,9 @@ wherever a family is run over many variables.
 | H5 | Conditional β- and σ-convergence | Barro & Sala-i-Martin (1992) | Cross-sectional OLS on initial level; dispersion over time | ✅ Tab 4 |
 | H6 | Countries converge in **clubs**, not globally | Phillips & Sul (2007) | log-t test + clustering algorithm | ✅ Tab 4 (growth-path clubs); 📥 PWT levels for level clubs |
 | H7 | R&D pays off more near the technological frontier; imitation pays off far from it | Acemoglu, Aghion & Zilibotti (2006); Aghion & Howitt (2006) | R&D × distance-to-frontier interaction; DML CATE in gap | ✅ Tab 14 (gap from rebuilt level panel) |
-| H8 | R&D leads productivity with a lag; productivity does not lead R&D | Griliches (1979) knowledge-stock lag | Lead-lag correlogram; panel Granger (Dumitrescu-Hurlin) | ✅ Tab 2 lead-lag, Tab 11 Granger; 🔧 D-H |
+| H8 | R&D leads productivity with a lag; productivity does not lead R&D | Griliches (1979) knowledge-stock lag | Lead-lag correlogram; panel Granger (Dumitrescu-Hurlin) | ✅ Tab 2 lead-lag, Tab 11 Granger & Dumitrescu-Hurlin |
 | H9 | Foreign R&D spills over through trade | Coe & Helpman (1995) | Trade-weighted foreign R&D stock in FE | 📥 trade weights |
-| H10 | Productivity series share common shocks (cross-sectional dependence) | Pesaran (2004, 2007) | CD test; CIPS unit root; Driscoll-Kraay SE | ✅ Tab 2 CD, Tab 12 DK; 🔧 CIPS |
+| H10 | Productivity series share common shocks (cross-sectional dependence) | Pesaran (2004, 2007) | CD test; CIPS unit root; Driscoll-Kraay SE | ✅ Tab 2 CD, Tab 10 CIPS, Tab 12 DK |
 | H11 | Productivity growth broke after 2008-09 and 2020 | Productivity-slowdown literature | Chow tests at candidate years; year effects | ✅ Tab 2 breaks |
 | H12 | R&D tax-credit introductions raise business R&D and, with a lag, productivity | Bloom, Griffith & Van Reenen (2002); Dechezleprêtre et al. (2023) | Staggered event study (Callaway-Sant'Anna), synthetic control | ✅ Tab 14 design (custom events); 📥 OECD B-index dates |
 | H13 | Public R&D (GBARD) crowds in private R&D | David, Hall & Toole (2000) | FE / local projections of BERD on GBARD | 🔧 Tab 14 LPs ready; 📥 GBARD, BERD |
@@ -36,7 +36,8 @@ Alesina, Favero & Giavazzi (2019) *Austerity*; Barro & Sala-i-Martin (1992)
 Reenen (2002) *JPubE*; Coe & Helpman (1995) *EER*; Cohen & Levinthal (1990)
 *ASQ*; David, Hall & Toole (2000) *Research Policy*; Callaway & Sant'Anna (2021) *J. Econometrics*;
 Chernozhukov et al. (2018) *Econometrics J.*; Jordà (2005) *AER*; Abadie,
-Diamond & Hainmueller (2010) *JASA*; Ferman & Pinto (2021) *Quant. Econ.*;
+Diamond & Hainmueller (2010) *JASA*; Dumitrescu & Hurlin (2012) *Econ.
+Modelling*; Ferman & Pinto (2021) *Quant. Econ.*;
 Dechezleprêtre, Einiö,
 Martin, Nguyen & Van Reenen (2023) *AEJ: Policy*; Fatás & Summers (2018)
 *JIE*; Griffith, Redding & Van Reenen (2004) *REStat*; Griliches (1979)

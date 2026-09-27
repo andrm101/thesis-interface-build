@@ -378,6 +378,19 @@ class DMLResult:
     moderator: str | None
     by_group: pd.DataFrame
     nuisance_r2: dict
+    # Interaction model  ỹ = a·ṽ + b·ṽ·(M − M̄):  a = effect at the mean
+    # moderator, b = slope; their joint cluster covariance and M̄.
+    cate_intercept: float | None = None
+    cate_cov: np.ndarray | None = None
+    moderator_mean: float | None = None
+
+    def effect_at(self, m: float) -> tuple[float, float]:
+        """θ(m) and its SE at moderator value *m* (falls back to θ)."""
+        if self.cate_cov is None:
+            return self.theta, self.se
+        z = np.array([1.0, m - self.moderator_mean])
+        return (float(self.cate_intercept + z[1] * self.cate_slope),
+                float(np.sqrt(max(z @ self.cate_cov @ z, 0))))
 
 
 def _cluster_ols(u: np.ndarray, V: np.ndarray, cl: np.ndarray):
@@ -393,7 +406,7 @@ def _cluster_ols(u: np.ndarray, V: np.ndarray, cl: np.ndarray):
     G = len(np.unique(cl))
     adj = G / (G - 1) if G > 1 else 1.0
     cov = adj * bread @ meat @ bread
-    return beta, np.sqrt(np.diag(cov))
+    return beta, np.sqrt(np.diag(cov)), cov
 
 
 def dml_plr(df: pd.DataFrame, y_level: str, treatment: str,
@@ -446,13 +459,15 @@ def dml_plr(df: pd.DataFrame, y_level: str, treatment: str,
     r2 = {"outcome": 1 - (ry ** 2).sum() / ((yv - yv.mean()) ** 2).sum(),
           "treatment": 1 - (rd ** 2).sum() / ((Dv - Dv.mean()) ** 2).sum()}
 
-    (theta,), (se,) = _cluster_ols(ry, rd[:, None], cl)
-    cate_b = cate_se = None
+    (theta,), (se,), _ = _cluster_ols(ry, rd[:, None], cl)
+    cate_b = cate_se = cate_a = cate_cov = m_mean = None
     if moderator:
-        z = d["_M"].to_numpy(float)
-        z = z - z.mean()
-        b, s = _cluster_ols(ry, np.column_stack([rd, rd * z]), cl)
-        cate_b, cate_se = float(b[1]), float(s[1])
+        zraw = d["_M"].to_numpy(float)
+        m_mean = float(zraw.mean())
+        z = zraw - m_mean
+        b, s, cov = _cluster_ols(ry, np.column_stack([rd, rd * z]), cl)
+        cate_a, cate_b, cate_se, cate_cov = (float(b[0]), float(b[1]),
+                                             float(s[1]), cov)
 
     rows = []
     if groups is not None:
@@ -460,7 +475,7 @@ def dml_plr(df: pd.DataFrame, y_level: str, treatment: str,
         for gname in pd.unique(lab.dropna()):
             m = (lab == gname).to_numpy()
             if m.sum() > 10 and len(np.unique(cl[m])) > 1:
-                (bt,), (st,) = _cluster_ols(ry[m], rd[m][:, None], cl[m])
+                (bt,), (st,), _ = _cluster_ols(ry[m], rd[m][:, None], cl[m])
                 rows.append(dict(Group=gname, theta=bt, se=st,
                                  p=2 * (1 - stats.norm.cdf(abs(bt / st))),
                                  n=int(m.sum()),
@@ -468,4 +483,57 @@ def dml_plr(df: pd.DataFrame, y_level: str, treatment: str,
     return DMLResult(float(theta), float(se),
                      float(2 * (1 - stats.norm.cdf(abs(theta / se)))),
                      len(yv), cate_b, cate_se, moderator, pd.DataFrame(rows),
-                     r2)
+                     r2, cate_a, cate_cov, m_mean)
+
+
+# ── 6. Causal scenario projection ──────────────────────────────────────────
+def causal_scenario(df: pd.DataFrame, y_level: str, country: str,
+                    delta: float, horizon: int,
+                    lp: pd.DataFrame | None = None, lp_state: str | None = None,
+                    dml: DMLResult | None = None, gap_value: float | None = None,
+                    trend_years: int = 5) -> pd.DataFrame:
+    """Project *country*'s outcome under a sustained change of *delta* units
+    in the treatment, using estimated causal effects instead of an ML fit.
+
+    Baseline: last observed 100·log y extended at the country's average
+    growth over the last *trend_years* (a transparent no-policy path).
+
+    LP engine: effect_h = β_h · delta, with β_h from the local projection
+      for the country's state (the LP response to a one-unit change already
+      includes the treatment's own persistence).
+    DML engine: a permanent change raises growth by θ(gap)·delta each year
+      from year 1 (the treatment enters with a one-year lag), so the level
+      effect accumulates: effect_h = h · θ(gap) · delta. The gap is held at
+      its current value — a conservative choice for catch-up economies,
+      whose gap (and so θ) changes as they converge.
+
+    Returns rows h, Year, baseline, and <engine>_mid/_lo/_hi in levels.
+    """
+    d = _sorted(df[df["Country"] == country])
+    ly = log_outcome(d, y_level).dropna()
+    if len(ly) < 2:
+        raise ValueError(f"no outcome data for {country}")
+    years = d.loc[ly.index, "Year"].to_numpy()
+    last_y, last_year = float(ly.iloc[-1]), int(years[-1])
+    k = min(trend_years, len(ly) - 1)
+    g = (ly.iloc[-1] - ly.iloc[-1 - k]) / k
+    hs = np.arange(horizon + 1)
+    base = last_y + g * hs
+    out = pd.DataFrame({"h": hs, "Year": last_year + hs,
+                        "baseline": np.exp(base / 100)})
+    if lp is not None:
+        t = lp if lp_state is None else lp[lp["state"] == lp_state]
+        t = t.set_index("h").reindex(hs)
+        for col, src in (("lp_mid", "beta"), ("lp_lo", "lo"), ("lp_hi", "hi")):
+            eff = t[src].to_numpy(float) * delta
+            out[col] = np.exp((base + eff) / 100)
+    if dml is not None:
+        th, se = dml.effect_at(gap_value if gap_value is not None
+                               else (dml.moderator_mean or 0.0))
+        for col, v in (("dml_mid", th), ("dml_lo", th - 1.96 * se),
+                       ("dml_hi", th + 1.96 * se)):
+            out[col] = np.exp((base + hs * v * delta) / 100)
+        out.attrs["dml_theta"], out.attrs["dml_se"] = th, se
+    out.attrs["baseline_growth_pct"] = g
+    return out
+

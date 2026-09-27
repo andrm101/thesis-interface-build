@@ -100,6 +100,7 @@ class ThesisApp(
         self.ml_model    = None   # best trained ML model
         self.ml_scaler   = None
         self.ml_features: list = []
+        self.ml_data     = None   # (X, y, meta, scheme, folds) of last run
         self.ml_results:  dict = {}
         self.clusters    = None   # DataFrame: Country, Cluster
 

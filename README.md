@@ -187,14 +187,27 @@ chosen by CV R². Note that `TFP Growth Rate` and `A` are near-mechanical
 predictors of `Y by L` (growth accounting) — untick them for a substantive
 benchmark.
 
+*Held-out Importance* ranks features by the drop in **held-out** R² when each
+is shuffled inside the test fold (whole countries for the grouped scheme),
+so it shows what generalises rather than what fits the training data.
+
 ### 7 · Scenarios
 Counterfactuals: move a country's R&D intensity to the cluster mean and
 re-predict productivity. Quantifies the absorptive-capacity channel
 behind the GERD paradox.
 
+**Causal Scenario** projects a country's output per worker under a sustained
+R&D change using causal estimates (state-dependent local projections and
+the DML effect at the country's frontier gap), with 95 % bands, against a
+transparent trend baseline — use it instead of the ML simulator for
+claims about policy effects.
+
 ### 8 · Compare
 Side-by-side regression table (Pooled / FE / RE / FE+Time) — the
 Table-2 equivalent of the thesis.
+
+Works with any number of clusters (K-Means or Phillips-Sul clubs) and adds
+a Wald test of coefficient equality across clusters (χ²(K−1)).
 
 ### 9 · Diagnostics
 Residual normality, heteroskedasticity (White test), serial correlation,
@@ -205,9 +218,17 @@ and cross-sectional dependence checks.
 the null of a unit root for log-differenced variables before using them
 in the panel specification.
 
+**CIPS (Pesaran 2007)** is robust to the cross-sectional dependence that
+the Tab 2 CD test finds; critical values are simulated for the panel's
+own N and T. *CIPS — All* screens every variable.
+
 ### 11 · VAR / IRF
 Vector autoregression and impulse-response functions — R&D shock → TFP
 and Output responses. Supplementary to the main specification.
+
+**Panel Granger (D-H)**: Dumitrescu-Hurlin (2012) test with heterogeneous
+coefficients for every ordered pair of selected variables, in levels and
+first differences, K = 1…3.
 
 ### 12 · Advanced
 Non-linear and interaction specifications (R&D × Human Capital, etc.).
@@ -312,6 +333,7 @@ thesis-interface-build/
 ├── build_panel.py           # raw workbook → data/panel_levels.csv (levels)
 ├── ml_eval.py               # leakage-safe CV (grouped / forward-chaining)
 ├── causal.py                # frontier FE, local projections, event study, SC, DML
+├── panel_tests.py           # CIPS unit root, Dumitrescu-Hurlin Granger
 ├── panel_data.xlsx          # shipped sample: 23 countries, 2000-2023
 ├── tabs/
 │   ├── tab_data.py          # 1 · Data         — loading, filtering, transforms

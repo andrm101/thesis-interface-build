@@ -111,3 +111,32 @@ def evaluate(model, X: pd.DataFrame, y: pd.Series, groups, years,
         "test_rmse": float(np.sqrt(mean_squared_error(y_te, y_pred))),
         "n_folds": len(r2), "scheme": scheme,
     }
+
+
+def grouped_permutation_importance(model, X: pd.DataFrame, y: pd.Series,
+                                   groups, years, scheme: str = SCHEMES[0],
+                                   n_splits: int = 5, n_repeats: int = 10,
+                                   seed: int = 0) -> pd.DataFrame:
+    """Permutation importance measured on HELD-OUT folds of *scheme*.
+
+    Impurity or coefficient importances describe the training fit; here
+    each feature's importance is the drop in held-out R² when that feature
+    is shuffled in the test fold (whole countries for the grouped scheme),
+    averaged over folds and repeats. Negative values mean the feature
+    hurts out-of-sample prediction.
+    """
+    from sklearn.inspection import permutation_importance
+
+    pipe = make_pipeline(StandardScaler(), clone(model))
+    per_fold = []
+    for tr, te in cv_splits(scheme, groups, years, n_splits, len(X)):
+        fit = clone(pipe).fit(X.iloc[tr], y.iloc[tr])
+        r = permutation_importance(fit, X.iloc[te], y.iloc[te], scoring="r2",
+                                   n_repeats=n_repeats, random_state=seed)
+        per_fold.append(r.importances_mean)
+    A = np.vstack(per_fold)
+    return (pd.DataFrame({"feature": X.columns, "mean": A.mean(axis=0),
+                          "std": A.std(axis=0),
+                          "share_positive": (A > 0).mean(axis=0)})
+            .sort_values("mean", ascending=False).reset_index(drop=True))
+

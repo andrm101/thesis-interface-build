@@ -81,6 +81,9 @@ class MLTabMixin:
                    command=self._run_ml).pack(side=tk.LEFT, padx=4)
         ttk.Button(btn_row, text="Feature Importance",
                    command=self._plot_importance).pack(side=tk.LEFT, padx=4)
+        ttk.Button(btn_row, text="Held-out Importance",
+                   command=self._plot_heldout_importance).pack(
+            side=tk.LEFT, padx=4)
         ttk.Button(btn_row, text="Actual vs Predicted",
                    command=self._plot_avp).pack(side=tk.LEFT, padx=4)
 
@@ -140,6 +143,7 @@ class MLTabMixin:
             return
         scheme = self.cv_scheme.get()
         folds  = int(self.cv_folds.get())
+        self.ml_data = (X, y, meta, scheme, folds)
         self.status_var.set("Training ML models…")
 
         def run():
@@ -313,3 +317,61 @@ class MLTabMixin:
         fig.suptitle("Actual vs Predicted", color=theme.FG)
         fig.tight_layout()
         embed_figure(fig, self.ml_plot_frame)
+
+    def _plot_heldout_importance(self):
+        if not self.ml_results or getattr(self, "ml_data", None) is None:
+            messagebox.showinfo("Info", "Train models first.")
+            return
+        X, y, meta, scheme, folds = self.ml_data
+        best = max(self.ml_results,
+                   key=lambda k: self.ml_results[k]["cv_r2_mean"])
+        model = self.ml_results[best]["model"]
+        self.status_var.set(f"Held-out permutation importance ({best})…")
+
+        def work():
+            return ml_eval.grouped_permutation_importance(
+                model, X, y, meta["Country"], meta["Year"], scheme, folds)
+
+        def show(t):
+            clear_txt(self.ml_txt)
+            lines = [f"HELD-OUT PERMUTATION IMPORTANCE — {best}\n{'='*62}\n",
+                     f"  Scheme: {scheme}. Importance = drop in held-out R² "
+                     f"when the\n  feature is shuffled in the test fold "
+                     f"(mean ± sd over folds).\n\n",
+                     f"  {'Feature':<32}{'ΔR²':>9}{'sd':>8}{'folds>0':>9}\n"]
+            for _, r in t.iterrows():
+                lines.append(f"  {r.feature:<32}{r['mean']:>9.4f}"
+                             f"{r['std']:>8.4f}{r.share_positive:>9.0%}\n")
+            lines.append("\n  Unlike impurity/coefficient importances, these "
+                         "measure what\n  generalises to unseen "
+                         f"{'countries' if scheme == ml_eval.SCHEMES[0] else 'data'}"
+                         "; ≤ 0 means no out-of-sample value.\n")
+            write(self.ml_txt, "".join(lines))
+            for w in self.ml_plot_frame.winfo_children():
+                w.destroy()
+            tt = t.iloc[::-1]
+            fig = Figure(figsize=(9, max(4, 0.45 * len(tt) + 1.5)),
+                         facecolor=theme.BG)
+            ax = fig.add_subplot(111)
+            ax.barh(tt.feature, tt["mean"], xerr=tt["std"],
+                    color=[theme.TEAL if v > 0 else theme.GRAY
+                           for v in tt["mean"]], capsize=3,
+                    error_kw={"ecolor": theme.FG, "alpha": 0.8})
+            ax.axvline(0, color=theme.FG, lw=0.7)
+            ax.set_xlabel("drop in held-out R² when shuffled")
+            ax.set_title(f"Held-out permutation importance — {best}",
+                         color=theme.FG)
+            ax.tick_params(labelsize=8)
+            fig.tight_layout()
+            embed_figure(fig, self.ml_plot_frame)
+            self.status_var.set("Held-out importance done")
+
+        def _t():
+            try:
+                res = work()
+                self.root.after(0, lambda: show(res))
+            except Exception as exc:
+                self.root.after(0, lambda exc=exc: messagebox.showerror(
+                    "Importance Error", str(exc)))
+        threading.Thread(target=_t, daemon=True).start()
+

@@ -18,6 +18,7 @@ import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -33,6 +34,7 @@ try:
 except ImportError:
     _HAS_ARCH = False
 
+import panel_tests
 import theme
 from helpers import make_text, write, clear_txt, embed_figure
 
@@ -83,6 +85,8 @@ class UnitRootTabMixin:
             ("PP Test",             self._run_pp),
             ("ADF — All Variables", self._run_adf_all),
             ("IPS Panel Test",      self._run_ips),
+            ("CIPS (Pesaran)",      self._run_cips),
+            ("CIPS — All",          self._run_cips_all),
         ]:
             ttk.Button(r2, text=label, command=cmd).pack(side=tk.LEFT, padx=4)
 
@@ -813,3 +817,101 @@ class UnitRootTabMixin:
         plt.colorbar(im, ax=ax, fraction=0.03, pad=0.03)
         fig.tight_layout()
         embed_figure(fig, self.ur_plot_frame, toolbar=True)
+
+    # ── CIPS (Pesaran 2007) ───────────────────────────────────────────────
+    def _cips_args(self):
+        try:
+            lags = max(0, min(int(self.ur_maxlag_var.get()), 3))
+        except ValueError:
+            lags = 1
+        return lags, self.ur_trend.get() == "Constant + Trend"
+
+    def _cips_header(self, lags, trend, r):
+        return (f"  CADF lags = {lags}"
+                f"{' (capped at 3 for short T)' if lags == 3 else ''};  "
+                f"deterministics: {'constant + trend' if trend else 'constant'}"
+                f";\n  balanced panel N = {r.N}, T = {r.T}; critical values "
+                f"simulated (500 panels\n  with a common factor) for this "
+                f"N and T.\n")
+
+    def _run_cips(self):
+        if not self._check_data():
+            return
+        col = self.ur_var.get()
+        lags, trend = self._cips_args()
+        df = self.df.copy()
+
+        def _work():
+            try:
+                r = panel_tests.cips(df, col, lags, trend)
+                verdict = ("REJECT H0 → stationary (in at least a "
+                           "significant share of countries)" if r.reject
+                           else "cannot reject H0 → unit root")
+                out = (f"\n{'═'*60}\n Pesaran (2007) CIPS panel unit-root "
+                       f"test — {col}\n{'═'*60}\n"
+                       + self._cips_header(lags, trend, r) +
+                       f"\n  CIPS = {r.stat:.3f}    p = {r.p_value:.3f}\n"
+                       f"  critical: 1% {r.crit[0.01]:.3f}   5% "
+                       f"{r.crit[0.05]:.3f}   10% {r.crit[0.10]:.3f}\n\n"
+                       f"  H0: unit root in every country (robust to common "
+                       f"shocks)\n  Conclusion: {verdict}\n")
+                ind = r.individual.sort_values()
+                out += "\n  Individual CADF t-statistics:\n" + "".join(
+                    f"    {c:<16}{t:>8.3f}\n" for c, t in ind.items())
+
+                def show():
+                    clear_txt(self.ur_txt)
+                    write(self.ur_txt, out)
+                    self._plot_cips(r)
+                self.root.after(0, show)
+            except Exception as exc:
+                self.root.after(0, lambda exc=exc: messagebox.showerror(
+                    "CIPS Error", str(exc)))
+        threading.Thread(target=_work, daemon=True).start()
+
+    def _plot_cips(self, r):
+        for w in self.ur_plot_frame.winfo_children():
+            w.destroy()
+        fig = Figure(figsize=(9, 5.5), facecolor=theme.BG)
+        ax = fig.add_subplot(111)
+        ind = r.individual.sort_values()
+        ax.barh(ind.index, ind.values, color=theme.BLUE, alpha=0.8)
+        ax.axvline(r.stat, color=theme.TEAL, lw=2, label=f"CIPS {r.stat:.2f}")
+        ax.axvline(r.crit[0.05], color=theme.RED, ls="--",
+                   label=f"5 % critical {r.crit[0.05]:.2f}")
+        ax.set_xlabel("CADF t-statistic")
+        ax.set_title(f"CIPS — {r.variable}", color=theme.FG)
+        ax.tick_params(labelsize=7)
+        ax.legend(fontsize=8)
+        fig.tight_layout()
+        embed_figure(fig, self.ur_plot_frame)
+
+    def _run_cips_all(self):
+        if not self._check_data():
+            return
+        lags, trend = self._cips_args()
+        df = self.df.copy()
+        cols = [c for c in df.select_dtypes("number").columns if c != "Year"]
+
+        def _work():
+            rows = []
+            for c in cols:
+                try:
+                    r = panel_tests.cips(df, c, lags, trend, n_sim=300)
+                    rows.append((c, r.stat, r.crit[0.05], r.p_value,
+                                 r.N, "I(0)" if r.reject else "I(1)?"))
+                except Exception as exc:
+                    rows.append((c, np.nan, np.nan, np.nan, 0,
+                                 f"skipped: {str(exc)[:30]}"))
+            out = [f"\n{'═'*72}\n CIPS — all variables  (lags = {lags}, "
+                   f"{'trend' if trend else 'constant'})\n{'═'*72}\n",
+                   f"  {'Variable':<28}{'CIPS':>8}{'5% cv':>8}{'p':>8}"
+                   f"{'N':>4}  verdict\n"]
+            for c, st, cv, p, n, v in rows:
+                out.append(f"  {c[:27]:<28}{st:>8.3f}{cv:>8.3f}{p:>8.3f}"
+                           f"{n:>4}  {v}\n")
+            text = "".join(out)
+            self.root.after(0, lambda: (clear_txt(self.ur_txt),
+                                        write(self.ur_txt, text)))
+        threading.Thread(target=_work, daemon=True).start()
+

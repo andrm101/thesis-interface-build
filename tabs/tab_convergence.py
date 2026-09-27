@@ -525,9 +525,7 @@ class ConvergenceTabMixin:
         messagebox.showinfo(
             "Clubs",
             f"{len(res.clubs)} club(s) now used as clusters — Tab 2 "
-            "(Groups → K-Means clusters)"
-            + (" and Tab 8 cluster comparison.\n" if len(res.clubs) == 2
-               else ".\nTab 8 comparison needs exactly 2 clubs.\n")
+            "(Groups → K-Means clusters) and Tab 8 cluster comparison.\n"
             + (f"Non-convergent countries excluded: "
                f"{', '.join(res.divergent)}" if res.divergent else ""))
 

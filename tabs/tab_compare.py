@@ -8,6 +8,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 
 import numpy as np
+from scipy.stats import chi2
 import pandas as pd
 import statsmodels.api as sm
 from linearmodels.panel import PanelOLS, RandomEffects, PooledOLS
@@ -100,13 +101,12 @@ class CompareTabMixin:
             return
         if self.clusters is None:
             messagebox.showwarning("No Clusters",
-                "Run K=2 clustering first in the Clustering tab.")
+                "Run clustering (Tab 5) or Phillips-Sul clubs (Tab 4) first.")
             return
         n_clusters = self.clusters["Cluster"].nunique()
-        if n_clusters != 2:
+        if n_clusters < 2:
             messagebox.showwarning(
-                "K≠2",
-                f"Comparison requires exactly 2 clusters; found {n_clusters}.")
+                "Clusters", f"Need ≥ 2 clusters; found {n_clusters}.")
             return
 
         dep  = self.cmp_dep.get()
@@ -134,8 +134,11 @@ class CompareTabMixin:
                     for cl in cl_ids
                 }
                 inn_id   = max(cluster_means, key=cluster_means.get)
-                cl_names = {cl: ("Innovative" if cl == inn_id else "Emerging")
-                            for cl in cl_ids}
+                if len(cl_ids) == 2:
+                    cl_names = {cl: ("Innovative" if cl == inn_id
+                                     else "Emerging") for cl in cl_ids}
+                else:   # unique names, or results would overwrite each other
+                    cl_names = {cl: f"Cluster {cl}" for cl in cl_ids}
 
                 for cl_id in cl_ids:
                     cl_name   = cl_names[cl_id]
@@ -237,12 +240,33 @@ class CompareTabMixin:
             self.status_var.set("No common variables to plot.")
             return
 
+        # Coefficient equality across clusters: clusters are disjoint
+        # samples, so estimates are independent and
+        #   W = Σ_k (b_k − b̄)² / se_k²,  b̄ = inverse-variance mean,
+        # is χ²(K−1) under H0: equal coefficient in every cluster.
+        K = len(valid)
+        write(self.cmp_txt,
+              f"\n{'='*60}\n  COEFFICIENT EQUALITY ACROSS {K} CLUSTERS "
+              f"(Wald, χ²({K - 1}))\n{'─'*60}\n"
+              f"{'Variable':<28} {'W':>10} {'p':>8} {'':>4}\n")
+        for v in common_vars:
+            b = np.array([valid[n].params[v] for n in cl_names])
+            se = np.array([valid[n].std_errors[v] for n in cl_names])
+            wts = 1 / se ** 2
+            W = float((wts * (b - (wts * b).sum() / wts.sum()) ** 2).sum())
+            p = float(1 - chi2.cdf(W, K - 1))
+            write(self.cmp_txt, f"{v:<28} {W:>10.3f} {p:>8.4f} "
+                                f"{stars(p):>4}\n")
+        write(self.cmp_txt, "  H0: the coefficient is the same in every "
+                            "cluster (heterogeneity test).\n")
+
         n_vars = len(common_vars)
-        fig    = Figure(figsize=(11, max(4, n_vars * 0.7 + 2)),
+        fig    = Figure(figsize=(11, max(4, n_vars * (0.35 * K + 0.3) + 2)),
                         facecolor=theme.BG)
         ax     = fig.add_subplot(111)
-        pal    = [theme.TEAL, theme.BLUE]
-        offset = 0.22
+        pal    = list(dict.fromkeys(theme.cluster_palette())) + [
+            "#e377c2", "#bcbd22", "#17becf", "#8c564b", "#ff7f0e"]
+        offset = 0.8 / K / 2
         y_pos  = np.arange(n_vars)
 
         for i, (cl_name, res) in enumerate(valid.items()):
@@ -250,9 +274,10 @@ class CompareTabMixin:
             coefs = res.params[common_vars].values
             lo    = ci.loc[common_vars, "lower"].values
             hi    = ci.loc[common_vars, "upper"].values
-            y     = y_pos + (i - 0.5) * offset * 2
+            y     = y_pos + (i - (K - 1) / 2) * offset * 2
             ax.barh(y, coefs, height=offset * 1.6,
-                    color=pal[i], alpha=0.75, label=cl_name, zorder=3)
+                    color=pal[i % len(pal)], alpha=0.75, label=cl_name,
+                    zorder=3)
             ax.errorbar(coefs, y,
                         xerr=[coefs - lo, hi - coefs],
                         fmt="none", color=theme.FG,
@@ -263,10 +288,10 @@ class CompareTabMixin:
         ax.set_yticklabels(common_vars, fontsize=9, color=theme.FG)
         ax.set_xlabel("Coefficient (with 95% CI)", color=theme.FG)
         ax.set_title(
-            f"Coefficient Forest Plot — {cl_names[0]} vs {cl_names[1]}",
+            "Coefficient Forest Plot — " + " vs ".join(cl_names),
             color=theme.FG, pad=10)
         ax.legend(
-            handles=[Patch(color=pal[i], label=n)
+            handles=[Patch(color=pal[i % len(pal)], label=n)
                      for i, n in enumerate(cl_names)],
             facecolor=theme.WBG, labelcolor=theme.FG,
         )
