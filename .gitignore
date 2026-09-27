@@ -7,3 +7,6 @@ venv/
 build/
 dist/
 *.spec
+
+# Raw source workbook: kept local (public repo); run build_panel.py on it
+data/raw/
