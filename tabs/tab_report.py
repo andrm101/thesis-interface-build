@@ -644,7 +644,7 @@ class ReportTabMixin:
                 self.root.after(0, lambda: (clear_txt(self.rpt_txt),
                                             write(self.rpt_txt, preview)))
             except Exception as exc:
-                self.root.after(0, lambda: messagebox.showerror(
+                self.root.after(0, lambda exc=exc: messagebox.showerror(
                     "HTML Report Error", str(exc)))
 
         threading.Thread(target=_work, daemon=True).start()
@@ -654,9 +654,13 @@ class ReportTabMixin:
             try:
                 html_str = self._build_html()
             except Exception as exc:
-                self.root.after(0, lambda: messagebox.showerror(
+                self.root.after(0, lambda exc=exc: messagebox.showerror(
                     "HTML Error", str(exc)))
                 return
+            # Tk dialogs must run on the main thread.
+            self.root.after(0, lambda: _ask_and_save(html_str))
+
+        def _ask_and_save(html_str):
             path = filedialog.asksaveasfilename(
                 title="Save HTML Report",
                 defaultextension=".html",
@@ -664,8 +668,7 @@ class ReportTabMixin:
             if path:
                 with open(path, "w", encoding="utf-8") as fh:
                     fh.write(html_str)
-                self.root.after(0, lambda: messagebox.showinfo(
-                    "Saved", f"Report saved to:\n{path}"))
+                messagebox.showinfo("Saved", f"Report saved to:\n{path}")
 
         threading.Thread(target=_work, daemon=True).start()
 
@@ -735,7 +738,7 @@ class ReportTabMixin:
                 self.root.after(0, lambda: messagebox.showinfo(
                     "Exported", f"Excel file saved to:\n{path}"))
             except Exception as exc:
-                self.root.after(0, lambda: messagebox.showerror(
+                self.root.after(0, lambda exc=exc: messagebox.showerror(
                     "Excel Export Error", str(exc)))
 
         threading.Thread(target=_work, daemon=True).start()

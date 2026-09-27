@@ -154,7 +154,13 @@ class CompareTabMixin:
                                 if (col > 0).all():
                                     df_sub[c] = np.log(col)
                     if len(df_sub) < 10:
-                        results[cl_name] = None
+                        results[cl_name] = "insufficient observations (<10)."
+                        continue
+                    if df_sub["Country"].nunique() < 2:
+                        results[cl_name] = (
+                            "only one country in this cluster "
+                            f"({', '.join(countries)}) — panel models need "
+                            "≥ 2 entities. Try other clustering variables.")
                         continue
                     df_idx = df_sub.set_index(["Country", "Year"])
                     df_idx.index.names = ["entity", "time"]
@@ -196,9 +202,8 @@ class CompareTabMixin:
             w.destroy()
 
         for cl_name, res in results.items():
-            if res is None:
-                write(self.cmp_txt,
-                      f"\n{cl_name}: insufficient observations (<10).\n")
+            if isinstance(res, str):
+                write(self.cmp_txt, f"\n{cl_name}: {res}\n")
                 continue
             r2_adj = getattr(res, "rsquared_adj",
                              getattr(res, "rsquared_between", float("nan")))
@@ -216,7 +221,7 @@ class CompareTabMixin:
                       f"{p:>8.4f} {stars(p):>4}\n")
 
         # Forest plot — side-by-side 95% CI bars
-        valid     = {k: v for k, v in results.items() if v is not None}
+        valid     = {k: v for k, v in results.items() if not isinstance(v, str)}
         if len(valid) < 2:
             self.status_var.set(
                 "Comparison done (not enough clusters to plot)")

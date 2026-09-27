@@ -37,12 +37,12 @@ from helpers import make_text, write, clear_txt, embed_figure
 
 # ── Trend code map ────────────────────────────────────────────────────────────
 _TREND_MAP = {
-    "nc (no constant)":       "nc",
+    "nc (no constant)":       "n",
     "c (constant)":           "c",
     "ct (constant + trend)":  "ct",
 }
 _VECM_DET_MAP = {
-    "nc (no constant)":       "nc",
+    "nc (no constant)":       "n",
     "c (constant)":           "co",
     "ct (constant + trend)":  "lo",
 }
@@ -300,7 +300,7 @@ class VARTabMixin:
                                             write(self.var_txt, out)))
                 self.root.after(0, lambda: self._plot_var_fit(data, res))
             except Exception as exc:
-                self.root.after(0, lambda: messagebox.showerror(
+                self.root.after(0, lambda exc=exc: messagebox.showerror(
                     "VAR Error", str(exc)))
 
         threading.Thread(target=_work, daemon=True).start()
@@ -353,7 +353,7 @@ class VARTabMixin:
                                             write(self.var_txt, out)))
                 self.root.after(0, lambda: self._plot_ic_table(sel, maxlag))
             except Exception as exc:
-                self.root.after(0, lambda: messagebox.showerror(
+                self.root.after(0, lambda exc=exc: messagebox.showerror(
                     "Lag Selection Error", str(exc)))
 
         threading.Thread(target=_work, daemon=True).start()
@@ -399,7 +399,7 @@ class VARTabMixin:
                                             write(self.var_txt, out)))
                 self.root.after(0, lambda: self._plot_resid_grid(res))
             except Exception as exc:
-                self.root.after(0, lambda: messagebox.showerror(
+                self.root.after(0, lambda exc=exc: messagebox.showerror(
                     "Residual Tests Error", str(exc)))
 
         threading.Thread(target=_work, daemon=True).start()
@@ -438,7 +438,7 @@ class VARTabMixin:
                                             write(self.var_txt, out)))
                 self.root.after(0, lambda: self._plot_stability(roots))
             except Exception as exc:
-                self.root.after(0, lambda: messagebox.showerror(
+                self.root.after(0, lambda exc=exc: messagebox.showerror(
                     "Stability Error", str(exc)))
 
         threading.Thread(target=_work, daemon=True).start()
@@ -475,7 +475,7 @@ class VARTabMixin:
                 self.root.after(
                     0, lambda: self._plot_irf(irf, periods, cumulative, title))
             except Exception as exc:
-                self.root.after(0, lambda: messagebox.showerror(
+                self.root.after(0, lambda exc=exc: messagebox.showerror(
                     "IRF Error", str(exc)))
 
         threading.Thread(target=_work, daemon=True).start()
@@ -509,7 +509,7 @@ class VARTabMixin:
                                f"  {'─'*52}"]
                     for t in range(periods):
                         row = "".join(
-                            f" {fevd.decomp[t, i, j]:>10.4f}"
+                            f" {fevd.decomp[i, t, j]:>10.4f}"
                             for j in range(k))
                         lines.append(f"  {t+1:>6}{row}")
                     lines.append("")
@@ -518,7 +518,7 @@ class VARTabMixin:
                                             write(self.var_txt, out)))
                 self.root.after(0, lambda: self._plot_fevd(fevd, cols, periods))
             except Exception as exc:
-                self.root.after(0, lambda: messagebox.showerror(
+                self.root.after(0, lambda exc=exc: messagebox.showerror(
                     "FEVD Error", str(exc)))
 
         threading.Thread(target=_work, daemon=True).start()
@@ -565,7 +565,7 @@ class VARTabMixin:
                 self.root.after(
                     0, lambda: self._plot_forecast(data, fc, lower, upper, cols))
             except Exception as exc:
-                self.root.after(0, lambda: messagebox.showerror(
+                self.root.after(0, lambda exc=exc: messagebox.showerror(
                     "Forecast Error", str(exc)))
 
         threading.Thread(target=_work, daemon=True).start()
@@ -631,7 +631,7 @@ class VARTabMixin:
                 self.root.after(
                     0, lambda: self._plot_granger(cols, mat_p))
             except Exception as exc:
-                self.root.after(0, lambda: messagebox.showerror(
+                self.root.after(0, lambda exc=exc: messagebox.showerror(
                     "Granger Error", str(exc)))
 
         threading.Thread(target=_work, daemon=True).start()
@@ -727,7 +727,7 @@ class VARTabMixin:
                 self.root.after(
                     0, lambda: self._plot_vecm(data, vecm_res, cols))
             except Exception as exc:
-                self.root.after(0, lambda: messagebox.showerror(
+                self.root.after(0, lambda exc=exc: messagebox.showerror(
                     "VECM Error", str(exc)))
 
         threading.Thread(target=_work, daemon=True).start()
@@ -799,7 +799,7 @@ class VARTabMixin:
                                   facecolor=theme.BG, squeeze=False)
         fig.subplots_adjust(hspace=0.55, wspace=0.35, left=0.09,
                             right=0.97, top=0.93, bottom=0.05)
-        resids = res.resid
+        resids = np.asarray(res.resid)
         for i, col in enumerate(cols):
             r = resids[:, i]
             # Histogram
@@ -913,7 +913,7 @@ class VARTabMixin:
             ax     = axes[0, i]
             bottom = np.zeros(periods)
             for j, src in enumerate(cols):
-                share = fevd.decomp[:periods, i, j]
+                share = fevd.decomp[i, :periods, j]
                 ax.bar(x, share, bottom=bottom,
                        color=pal[j % len(pal)], label=src, width=0.8)
                 bottom += share
