@@ -94,9 +94,16 @@ tabs top-to-bottom reproduces the empirical workflow of the thesis.
 3. Click **EU-25** (or **Innovative** / **Emerging** if you already want
    to focus on one cluster).
 4. Hit **Apply Filters**. The status bar should read *"528 obs · 22
-   countries"*. **Luxembourg is excluded by default** — as a structural
-   outlier it otherwise forms a one-country K-Means cluster. Tick it in
-   the country list to bring it back (`constants.EXCLUDED_COUNTRIES`).
+   countries · z-screen: excluded Luxembourg"*.
+   The **Z-score Outlier Screen** panel is enforced by default: countries
+   whose *mean* on a model variable lies beyond |z| > 3 of the
+   cross-country distribution are dropped. On the shipped data this
+   removes only **Luxembourg** (Human Capital Proxy z ≈ +3.3, Savings
+   z ≈ +3.5, Patents per capita z ≈ +3.1). Options: threshold, classic vs.
+   robust (median/MAD) z, country vs. observation (within-country) level,
+   and NaN / winsorize / drop for flagged cells. **Screen Report…** shows
+   the flags and a z-score heatmap. Observation-level flags cluster in
+   2009 and 2020 — genuine shocks — so the default screens countries only.
 5. Optional but recommended: click **Panel Structure Report** — it
    prints whether the panel is balanced and a per-variable missingness
    table. Expect a balanced 22 × 24 = 528-cell grid.
@@ -106,10 +113,23 @@ tabs top-to-bottom reproduces the empirical workflow of the thesis.
    - `Patents per capita → Growth Rate (%)` if you want a "patent
      intensity" flow variable.
 
-### 2 · Statistics
-Run descriptive stats and correlation heatmaps by cluster. Confirms that
-R&D intensity, patents, and savings rate all differ significantly
-between Innovative and Emerging economies.
+### 2 · Statistics  *(exploratory data analysis)*
+Pick a **Variable / X**, an **Outcome Y**, and the **Groups** (a-priori
+Innovative/Emerging, or the K-Means clusters from Tab 5).
+
+**Tests** (▶ *Run All Tests* runs every family; p-values carry
+Benjamini-Hochberg FDR adjustments — see `eda.py`):
+summary · normality (Shapiro-Wilk, Jarque-Bera, D'Agostino) · group
+differences (Welch, Mann-Whitney, KS, Levene, Cohen's d) · country
+heterogeneity (ANOVA, Kruskal-Wallis, η²) · trends (Mann-Kendall) ·
+pooled / between / within correlations · Pesaran CD · between/within
+variance decomposition · Chow structural breaks (2004, 2008, 2009, 2013,
+2020) · lead-lag correlations.
+
+**Figures**: correlation heatmap · distributions by group · Q-Q plots ·
+trajectories with group median ± IQR · box plots by country · country ×
+year heatmap · z-score map · scatter matrix · X-vs-Y by group (pooled and
+within) · lead-lag correlogram · between/within variance bars.
 
 ### 3 · Panel FE / RE  *(core estimation)*
 1. **Dependent variable**: `Y by L` (output per worker).
@@ -199,6 +219,19 @@ single consolidated report.
 
 ---
 
+## Extending the data & hypotheses
+
+- [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md) — open sources (Eurostat,
+  OECD, Penn World Table, AMECO, EU Cohesion, CORDIS, WGI) for R&D
+  intensity levels, fiscal-policy variables and R&D tax-incentive dates.
+- [`docs/HYPOTHESES.md`](docs/HYPOTHESES.md) — 18 literature-based
+  hypotheses mapped to the tab that tests them, or the data they need.
+
+> **Note on the shipped data:** most columns are year-on-year growth
+> indices (previous year = 100), not levels — see `DATA_SOURCES.md`.
+
+---
+
 ## Expected dataset schema
 
 The app was built around the shipped `panel_data.xlsx`, but it accepts
@@ -233,10 +266,12 @@ thesis-interface-build/
 ├── theme.py                 # palettes, ttk styles, matplotlib defaults
 ├── constants.py             # EU groupings + thesis clusters + helpers
 ├── helpers.py               # shared UI + plot embedding helpers
+├── outliers.py              # z-score outlier screen (country / observation)
+├── eda.py                   # EDA test battery (normality, groups, CD, breaks…)
 ├── panel_data.xlsx          # shipped sample: 23 countries, 2000-2023
 ├── tabs/
 │   ├── tab_data.py          # 1 · Data         — loading, filtering, transforms
-│   ├── tab_stats.py         # 2 · Statistics   — descriptives + correlations
+│   ├── tab_stats.py         # 2 · Statistics   — EDA tests + figures
 │   ├── tab_panel.py         # 3 · Panel FE/RE  — core estimation + Hausman
 │   ├── tab_convergence.py   # 4 · Convergence  — cross-sectional β-convergence
 │   ├── tab_clustering.py    # 5 · Clustering   — K-Means typology + PCA biplot
@@ -248,6 +283,7 @@ thesis-interface-build/
 │   ├── tab_var.py           # 11 · VAR / IRF   — impulse responses
 │   ├── tab_advanced.py      # 12 · Advanced    — interactions, non-linearities
 │   └── tab_report.py        # 13 · Report      — consolidated export
+├── docs/                    # data-source catalogue + hypothesis catalogue
 ├── tests/                   # pytest: dataset checks + headless GUI smoke test
 ├── .github/workflows/       # CI (lint + tests) and Windows release build
 ├── requirements.txt         # runtime dependencies

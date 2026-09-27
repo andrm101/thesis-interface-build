@@ -48,7 +48,7 @@ APP_SUBTITLE = ("EU-25 sample (23 countries shipped) · 2000-2023 · World Bank 
 # glance without depending on emoji font support.
 TAB_LAYOUT = [
     ("  1 · Data            ", "_tab_data",         None),
-    ("  2 · Statistics      ", "_tab_stats",        None),
+    ("  2 · Statistics      ", "_tab_stats",        "_refresh_stats_vars"),
     ("  3 · Panel FE/RE     ", "_tab_panel",        "_refresh_panel_vars"),
     ("  4 · Convergence     ", "_tab_conv",         "_refresh_conv_vars"),
     ("  5 · Clustering      ", "_tab_cluster",      "_refresh_cluster_vars"),
