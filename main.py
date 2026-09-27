@@ -2,12 +2,15 @@
 main.py  —  Entry point for the app.
 
 Run with:
-    python main.py
+    python main.py                 # auto-loads the bundled panel_data.xlsx
+    python main.py path/to/panel   # load another .xlsx / .csv panel
 """
 
 import warnings
 warnings.filterwarnings("ignore")
 
+import os
+import sys
 import tkinter as tk
 from app import ThesisApp
 
@@ -22,7 +25,15 @@ def main() -> None:
         pass
 
     root = tk.Tk()
-    ThesisApp(root)
+    app = ThesisApp(root)
+
+    # Pre-load a dataset: an explicit CLI path, else the bundled sample.
+    default = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           "panel_data.xlsx")
+    path = sys.argv[1] if len(sys.argv) > 1 else default
+    if os.path.exists(path):
+        root.after(100, lambda: app.load_path(path))
+
     root.mainloop()
 
 

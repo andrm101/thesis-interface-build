@@ -1,0 +1,46 @@
+name: Build Windows app
+
+# Push a tag like `v1.1.0` to publish a GitHub Release with a ready-to-run
+# Windows build, or run manually from the Actions tab to get a downloadable
+# workflow artifact.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt pyinstaller
+      - name: Build with PyInstaller
+        run: >
+          pyinstaller --noconfirm --clean --windowed
+          --name EU-Innovation-Panel
+          --add-data "panel_data.xlsx;."
+          --collect-submodules linearmodels
+          --collect-submodules statsmodels
+          --collect-submodules arch
+          main.py
+      - name: Zip build
+        shell: pwsh
+        run: Compress-Archive -Path dist/EU-Innovation-Panel -DestinationPath EU-Innovation-Panel-windows.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EU-Innovation-Panel-windows
+          path: EU-Innovation-Panel-windows.zip
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: EU-Innovation-Panel-windows.zip
+          generate_release_notes: true

@@ -1,5 +1,9 @@
 # Augmented Solow · R&D Heterogeneity Lab
 
+[![CI](https://github.com/andrm101/thesis-interface-build/actions/workflows/ci.yml/badge.svg)](https://github.com/andrm101/thesis-interface-build/actions/workflows/ci.yml)
+[![Windows build](https://github.com/andrm101/thesis-interface-build/actions/workflows/release.yml/badge.svg)](https://github.com/andrm101/thesis-interface-build/actions/workflows/release.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 > **Thesis interface for:**
 > *An empirical investigation into the heterogeneous impact of R&D
 > investment on economic productivity across 25 EU member states over a
@@ -53,14 +57,22 @@ flowchart TD
 
 ## Quick start
 
-```bash
-# 1. Clone or copy the folder, then install deps (Python ≥ 3.10)
-pip install pandas numpy matplotlib seaborn scikit-learn \
-            statsmodels linearmodels openpyxl
+**Windows, no Python needed:** download `EU-Innovation-Panel-windows.zip`
+from the [latest release](https://github.com/andrm101/thesis-interface-build/releases/latest),
+unzip, and run `EU-Innovation-Panel.exe`.
 
-# 2. Launch the GUI
-python main.py
+**From source** (Python ≥ 3.10):
+
+```bash
+git clone https://github.com/andrm101/thesis-interface-build.git
+cd thesis-interface-build
+pip install -r requirements.txt
+
+python main.py                    # opens with the bundled panel_data.xlsx loaded
+python main.py my_panel.csv       # or start with your own panel
 ```
+
+On Linux, Tk comes from the system package manager (`sudo apt install python3-tk`).
 
 On Windows the app opens maximised and applies per-monitor DPI
 awareness. A dark "Palantir" palette is the default; toggle to the
@@ -75,8 +87,9 @@ The interface is organised as a linear 13-tab pipeline. Following the
 tabs top-to-bottom reproduces the empirical workflow of the thesis.
 
 ### 1 · Data
-1. Click **Browse…** and pick `panel_data.xlsx` (shipped alongside the
-   code; 552 rows × 16 cols, long-form country × year).
+1. The bundled `panel_data.xlsx` (552 rows × 16 cols, long-form
+   country × year) is loaded automatically at startup. Use **Browse…**
+   to switch to another file.
 2. Leave the year range at **2000 – 2023**.
 3. Click **EU-25** (or **Innovative** / **Emerging** if you already want
    to focus on one cluster).
@@ -212,7 +225,7 @@ automatically and offers them in every dropdown.
 ## Project layout
 
 ```
-Thesis Interface Build/
+thesis-interface-build/
 ├── main.py                  # entry point — run this
 ├── app.py                   # ThesisApp shell (multiple-inheritance of mixins)
 ├── theme.py                 # palettes, ttk styles, matplotlib defaults
@@ -233,6 +246,10 @@ Thesis Interface Build/
 │   ├── tab_var.py           # 11 · VAR / IRF   — impulse responses
 │   ├── tab_advanced.py      # 12 · Advanced    — interactions, non-linearities
 │   └── tab_report.py        # 13 · Report      — consolidated export
+├── tests/                   # pytest: dataset checks + headless GUI smoke test
+├── .github/workflows/       # CI (lint + tests) and Windows release build
+├── requirements.txt         # runtime dependencies
+├── requirements-dev.txt     # + pytest, ruff
 └── README.md                # this file
 ```
 
@@ -252,8 +269,33 @@ Every one of the above is exposed as a button in the GUI.
 
 ---
 
+## Development
+
+```bash
+pip install -r requirements-dev.txt
+ruff check --select E9,F63,F7,F82 .   # syntax errors / undefined names
+python -m pytest                      # data checks + headless GUI smoke test
+```
+
+The GUI smoke test needs a display; on a headless Linux box run it under
+`xvfb-run -a python -m pytest`. CI (`.github/workflows/ci.yml`) does exactly
+this on every push and pull request.
+
+### Releasing a Windows build
+
+```bash
+git tag v1.1.0 && git push origin v1.1.0
+```
+
+`.github/workflows/release.yml` builds the app with PyInstaller on a Windows
+runner, bundles `panel_data.xlsx`, and attaches
+`EU-Innovation-Panel-windows.zip` to a GitHub Release. You can also run the
+workflow manually from the **Actions** tab to get the zip as a build artifact.
+
+---
+
 ## Credits & licence
 
 Built as a companion tool for Andrei's master-thesis on R&D
-heterogeneity in EU growth. MIT-style reuse welcome — drop a link back
-to the repo if you build on it.
+heterogeneity in EU growth. Released under the [MIT licence](LICENSE) —
+drop a link back to the repo if you build on it.

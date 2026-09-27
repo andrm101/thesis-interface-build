@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install system packages (Tk display)
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+      - name: Lint (syntax errors & undefined names)
+        run: ruff check --select E9,F63,F7,F82 .
+      - name: Tests (headless GUI under xvfb)
+        env:
+          MPLBACKEND: Agg
+        run: xvfb-run -a python -m pytest -v
