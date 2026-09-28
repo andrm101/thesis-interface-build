@@ -1,4 +1,6 @@
-# Augmented Solow · R&D Heterogeneity Lab
+<p align="center">
+  <img src="assets/brand-banner.svg" alt="Augmented Solow · R&D Heterogeneity Lab" width="100%">
+</p>
 
 [![CI](https://github.com/andrm101/thesis-interface-build/actions/workflows/ci.yml/badge.svg)](https://github.com/andrm101/thesis-interface-build/actions/workflows/ci.yml)
 [![Windows build](https://github.com/andrm101/thesis-interface-build/actions/workflows/release.yml/badge.svg)](https://github.com/andrm101/thesis-interface-build/actions/workflows/release.yml)
@@ -18,7 +20,7 @@ convergence clubs, second-generation panel tests, leakage-safe machine
 learning and **causal designs** (local projections, staggered event study,
 synthetic control, double machine learning).
 
----
+<img src="assets/brand-divider.svg" alt="" width="100%">
 
 ## Contents
 
@@ -35,7 +37,7 @@ A longer, figure-illustrated version of the findings lives in the
 source is [`docs/wiki/`](docs/wiki), published automatically by
 `.github/workflows/wiki.yml` on every push to `main`.
 
----
+<img src="assets/brand-divider.svg" alt="" width="100%">
 
 ## Quick start
 
@@ -59,7 +61,7 @@ On Linux, Tk comes from the system package manager (`sudo apt install
 python3-tk`). A dark palette is the default; toggle the light palette from
 the top-right corner for paper-ready screenshots.
 
----
+<img src="assets/brand-divider.svg" alt="" width="100%">
 
 ## Key findings and interpretation
 
@@ -141,7 +143,7 @@ but R&D by source of funds is proxied (total R&D minus the public budget);
 log productivity has a unit root (B5), so level regressions rely on the
 dynamic specifications.
 
----
+<img src="assets/brand-divider.svg" alt="" width="100%">
 
 ## Methodology
 
@@ -308,7 +310,7 @@ its own marker shape, so they remain readable in greyscale print.
 | D5 | Public R&D budgets: additionality / crowding-in | B | Tab 14 → treatment `GBARD_pct_GDP`, *LP in levels* → Local Projections (outcome `RD_pct_GDP` / `NonGBARD_RD_pct_GDP`) |
 | — | Causal scenario | B | Tab 7 → Causal Scenario |
 
----
+<img src="assets/brand-divider.svg" alt="" width="100%">
 
 ## What reproduces — and what does not
 
@@ -333,7 +335,7 @@ is positive — mainly in the Innovative economies, as the thesis argued — but
 that result rests on a narrow set of valid instrument choices and should be
 presented with its diagnostics.**
 
----
+<img src="assets/brand-divider.svg" alt="" width="100%">
 
 ## Tab reference
 
@@ -357,7 +359,7 @@ presented with its diagnostics.**
 The 18 literature-based hypotheses and the tab that tests each are listed in
 [`docs/HYPOTHESES.md`](docs/HYPOTHESES.md).
 
----
+<img src="assets/brand-divider.svg" alt="" width="100%">
 
 ## Data
 
@@ -420,7 +422,7 @@ variables still missing — R&D by source of funds, EU Cohesion and Horizon
 funding, trade weights, governance indicators. The Tab 14 designs
 take them directly (e.g. custom events `Poland:2016, Slovakia:2015`).
 
----
+<img src="assets/brand-divider.svg" alt="" width="100%">
 
 ## Project layout
 
@@ -452,7 +454,7 @@ thesis-interface-build/
 └── .github/workflows/       # CI, Windows release build, wiki sync
 ```
 
----
+<img src="assets/brand-divider.svg" alt="" width="100%">
 
 ## Development
 
@@ -483,7 +485,7 @@ which builds the app with PyInstaller on a Windows runner, bundles
 `EU-Innovation-Panel-windows.zip` to the release. The workflow can also be
 run manually from the **Actions** tab to get the zip as a build artifact.
 
----
+<img src="assets/brand-divider.svg" alt="" width="100%">
 
 ## Credits & licence
 
