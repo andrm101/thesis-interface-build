@@ -108,6 +108,14 @@ the one originally given, and with less certainty. IDs refer to
 7. **Productivity growth is hard to predict.** Honest cross-validation
    gives out-of-sample R² of about 0.05 and negative R² for forecasting
    later years (A6) — a caution against reading much into ML scenario tools.
+8. **R&D tax incentives raise R&D spending a little, not productivity (yet).**
+   Seventeen generosity reforms dated from the OECD tax-subsidy series (e.g.
+   Czechia 2005, Lithuania 2008, Slovakia 2015, Poland 2016, Germany 2020)
+   pass the parallel-trends check. R&D intensity rises by about 3-5 % after a
+   reform, growing to 6-10 % after five years, but with wide intervals; output
+   per worker does not respond within five years (D2, Fig. 8). Fiscal
+   tightening appears to precede faster growth (D4), but with the headline
+   balance that mostly reflects the business cycle, not policy.
 
 **How to phrase it in the thesis.** Present the GERD paradox as a problem of
 *timing and reverse causality* rather than of aggregation alone: R&D
@@ -119,9 +127,11 @@ is misaligned.
 
 **Limitations.** 24 countries and 24 years (small N for GMM and clustering);
 the thesis panel stores growth indices, not levels; the causal designs have
-no direct policy variable yet (R&D budgets, tax incentives —
-`docs/DATA_SOURCES.md`); log productivity has a unit root (B5), so
-level regressions rely on the dynamic specifications.
+only partial policy data — tax incentives and the headline fiscal balance
+are complete, but government R&D budgets lack 2008-2016 and the
+cyclically adjusted balance is not yet included (`data/policy_coverage.csv`);
+log productivity has a unit root (B5), so level regressions rely on the
+dynamic specifications.
 
 ---
 
@@ -260,6 +270,7 @@ PDF) and the main tables to [`results/tables/`](results/tables) as LaTeX
 | `fig5_gmm_specifications` | System-GMM R&D coefficient across the specification grid |
 | `fig6_dml_sensitivity` | DML heterogeneity slope by sample and learner |
 | `fig7_beta_convergence` | β-convergence by typology, with the Innovative group zoomed |
+| `fig8_tax_reforms` | R&D tax-incentive reforms: event study for R&D intensity and output per worker |
 
 Figures use a colour-blind-validated palette, and every series also has
 its own marker shape, so they remain readable in greyscale print.
@@ -282,6 +293,10 @@ its own marker shape, so they remain readable in greyscale print.
 | B11 / B12 | Double ML and its sensitivity | B | Tab 14 → Double ML (vary learner; Tab 1 country filter) |
 | B13 | System GMM, R&D endogenous (spec grid, heterogeneity) | B | Tab 14 → Dynamic GMM |
 | C1 | β-convergence by typology | B | Tab 1 Innovative / Emerging → Tab 4 → Absolute β-Convergence |
+| D1 | Policy-data coverage | B | `data/policy_coverage.csv` (written by `build_panel.py`) |
+| D2 | R&D tax-reform event study | B | Tab 14 → Events: *R&D tax reforms* → Event Study (outcome `RD_pct_GDP` or `Y_per_worker`) |
+| D3 | Local projections of tax-subsidy changes | B | Tab 14 → treatment `RD_subsidy_large_profit` → Local Projections |
+| D4 | Local projections of the fiscal balance | B | Tab 14 → treatment `Gov_balance_pct_GDP` → Local Projections |
 | — | Causal scenario | B | Tab 7 → Causal Scenario |
 
 ---
@@ -349,6 +364,19 @@ git-ignored); the rebuilt `data/panel_levels.csv` is committed, so every
 Track B result reproduces without it. `tests/test_build_panel.py` skips when
 the raw file is absent.
 
+**Policy variables** (`policy_data.py`) are merged in when the Eurostat /
+OECD exports are present in `data/raw/policy/`:
+
+| File | Source | Becomes |
+|---|---|---|
+| `gba_nabsfin92.xlsx` + `gba_nabsfin07.xlsx` | Eurostat GBARD (NABS 1992 ≤ 2007, NABS 2007 ≥ 2007), spliced on the total | `GBARD_mEUR`, `GBARD_per_capita_EUR`, `GBARD_share_GERD` |
+| `oecd_rdsub.xlsx` | OECD implied R&D tax subsidy rates (1 − B-index), 2000-2025 | `RD_subsidy_{sme,large}_{profit,loss}`, `RD_tax_reform_year` |
+| `gov_10dd_edpt1.xlsx` | Eurostat general government net lending, % GDP, 1995-2025 | `Gov_balance_pct_GDP`, `Fiscal_consolidation` |
+
+`build_panel.py` writes the coverage per country and variable to
+`data/policy_coverage.csv`. Export Eurostat tables with **all years
+selected** — the default view keeps only the last ten.
+
 ### Data audit
 
 [`docs/DATA_AUDIT.md`](docs/DATA_AUDIT.md) documents the cell-by-cell
@@ -398,6 +426,7 @@ thesis-interface-build/
 ├── clubs.py                 # Phillips-Sul clubs
 ├── ml_eval.py               # leakage-safe CV, held-out importance
 ├── panel_tests.py           # CIPS, Dumitrescu-Hurlin
+├── policy_data.py           # GBARD / OECD tax-subsidy / fiscal importer, events
 ├── causal.py                # frontier FE, LP, event study, SC, DML, scenarios
 ├── gmm.py                   # Arellano-Bond / Blundell-Bond dynamic panel GMM
 ├── figures.py               # thesis figures (PNG/PDF) and LaTeX tables

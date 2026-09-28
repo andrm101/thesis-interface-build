@@ -64,7 +64,21 @@ A naive Callaway–Sant'Anna event study finds output per worker about 14 % high
 
 ![Event study](https://raw.githubusercontent.com/andrm101/thesis-interface-build/main/results/figures/fig4_event_study.png)
 
-## 7. Other results
+## 7. R&D tax incentives raise R&D spending a little, not productivity (yet)
+
+**How the reforms are dated.** The OECD's implied R&D tax subsidy rate (1 − B-index) dates each country's generosity reforms without any hand-coding: a reform is the first year the large-firm subsidy rises by at least 5 pp and stays up. That finds **17 reforms**, and the dates match well-documented ones, such as Czechia 2005, France 2004, Lithuania 2008, Slovakia 2015, Poland 2016 and Germany 2020 (D2).
+
+**Unlike EU accession, these reforms pass the parallel-trends check** (pre-trend p = 0.38–0.91). A staggered event study finds:
+- **R&D intensity:** about +3–5 % after a reform, growing to +6–10 % after five years. The intervals are wide, so it is not significant.
+- **Output per worker:** no response within five years.
+
+![R&D tax reforms](https://raw.githubusercontent.com/andrm101/thesis-interface-build/main/results/figures/fig8_tax_reforms.png)
+
+**Continuous subsidy changes behave differently.** They are followed by *lower* R&D intensity (D3), which suggests governments raise support when R&D is weak. That policy endogeneity is why the event study, with its testable pre-trends, is the preferred design.
+
+**The fiscal result is not causal.** Output rises after the government balance improves, while employment does not move (D4). But the headline balance improves automatically in booms, so this is mostly the business cycle. A causal test needs the cyclically adjusted balance.
+
+## 8. Other results
 
 - **Savings** are the most consistent productivity driver on the thesis panel (A2, A3), and weaker on the rebuilt panel (B3).
 - **Hausman** prefers fixed effects only at the 10 % level (p = 0.099; A2).

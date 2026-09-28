@@ -1,5 +1,9 @@
 # Candidate data sources
 
+> **Export tip:** Eurostat's *default view* download keeps only the last ten
+> years. Use *Customize dataset → TIME → select all* before downloading, or the
+> series will have gaps (this happened with `gba_nabsfin07`, 2008-2016).
+>
 > **Update:** the raw workbook is now in `data/raw/` and `build_panel.py`
 > produces level versions of GERD % GDP, researchers, patents, tertiary
 > attainment and output per worker (see `DATA_AUDIT.md`). The sources below

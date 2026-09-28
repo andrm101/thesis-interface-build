@@ -36,7 +36,8 @@ DEFAULTS = {"y": "Y_per_worker", "rd": "RD_pct_GDP", "gap": "Frontier_gap"}
 DEFAULT_CONTROLS = ("Savings_rate", "Tertiary_share")
 STATES = ("Frontier gap > median (catch-up)", "A-priori Emerging group",
           "None (linear)")
-EVENT_SETS = ("EU accession (2004/2007/2013)", "Custom (below)")
+EVENT_SETS = ("EU accession (2004/2007/2013)",
+              "R&D tax reforms (OECD subsidy jumps)", "Custom (below)")
 
 
 class CausalTabMixin:
@@ -225,8 +226,19 @@ class CausalTabMixin:
                               else "Emerging") for c in cs})
 
     def _cz_events_dict(self) -> dict:
-        if self.cz_events.get() == EVENT_SETS[0]:
+        choice = self.cz_events.get()
+        if choice == EVENT_SETS[0]:
             return dict(causal.EU_ACCESSION)
+        if choice == EVENT_SETS[1]:
+            col = "RD_tax_reform_year"
+            if col not in self.df.columns:
+                messagebox.showwarning(
+                    "Events", "No R&D tax-reform dates in this panel — "
+                    "rebuild it with the policy files (build_panel.py).")
+                return {}
+            ev = (self.df.dropna(subset=[col]).groupby("Country")[col]
+                  .first().astype(int))
+            return ev.to_dict()
         return causal.parse_events(self.cz_custom.get())
 
     def _cz_run(self, label, work, show):

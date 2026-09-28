@@ -39,6 +39,7 @@ import gmm
 import ml_eval
 import outliers
 import panel_tests
+import policy_data
 from constants import INNOVATIVE_CLUSTER, stars
 
 warnings.filterwarnings("ignore")
@@ -376,6 +377,96 @@ def beta_convergence(df):
             "counterpart.\n"]
 
 
+def policy_section(df, nb):
+    """D: R&D tax-incentive reforms and fiscal balance (policy_data.py)."""
+    L = ["## Track B, part D — policy variables (`data/raw/policy/`)\n",
+         "R&D tax generosity = OECD implied tax subsidy rate (1 − B-index), "
+         "large profitable firm;\nfiscal stance = general government net "
+         "lending, % of GDP (Eurostat).\n"]
+    cols = [c for c in ("GBARD_mEUR", "Gov_balance_pct_GDP",
+                        "RD_subsidy_large_profit") if c in df]
+    cov = policy_data.coverage(df, sorted(df["Country"].unique()), cols,
+                               window=(2000, 2023))
+    summ = []
+    for c in cols:
+        full = cov[c].str.fullmatch(r"2000–2023")
+        gaps = cov.loc[~full, ["Country", c]]
+        summ.append({"Variable": c, "complete 2000-2023": int(full.sum()),
+                     "countries": len(cov),
+                     "incomplete": "; ".join(f"{a}: {b}" for a, b in
+                                            gaps.itertuples(index=False))
+                                   or "—"})
+    L += ["**D1 · Coverage, 2000-2023** (full table: "
+          "`data/policy_coverage.csv`):\n", md_table(pd.DataFrame(summ)),
+          "\n`GBARD_mEUR` 2008-2016 is missing from the current NABS 2007 "
+          "export (default view = last\n10 years); GBARD analyses wait for "
+          "the full-period file.\n"]
+    if "RD_tax_reform_year" not in df:
+        return L
+    ev = (df.dropna(subset=["RD_tax_reform_year"]).groupby("Country")
+          ["RD_tax_reform_year"].first().astype(int).to_dict())
+    L.append("**D2 · R&D tax-incentive reforms: staggered event study "
+             "(Tab 14 → Events: R&D tax reforms):**\n")
+    L.append("Reform = first year the large-firm subsidy rate rises ≥ 5 pp "
+             "and stays up ≥ 2 more years.\nDetected: "
+             + ", ".join(f"{c} {y}" for c, y in sorted(ev.items(),
+                                                        key=lambda t: t[1]))
+             + ".\n")
+    rows = []
+    for out in ("RD_pct_GDP", "Y_per_worker"):
+        for ctrl in causal.CONTROL_GROUPS:
+            for dt in (False, True):
+                r = causal.event_study(df, out, ev, 3, 5, min(nb, 199),
+                                       control=ctrl, detrend=dt)
+                if out == "RD_pct_GDP" and ctrl == causal.CONTROL_GROUPS[1] \
+                        and not dt:
+                    ART["tax_es"] = {"R&D intensity": r}
+                if out == "Y_per_worker" and ctrl == causal.CONTROL_GROUPS[1] \
+                        and not dt:
+                    ART.setdefault("tax_es", {})["Output per worker"] = r
+                rows.append({"Outcome": out, "Controls": ctrl,
+                             "Detrended": dt, "Post ATT %": r.overall_post,
+                             "SE": r.overall_post_se,
+                             "Pre-trend p": pstar(r.pretrend_p)})
+    t = pd.DataFrame(rows)
+    ART.setdefault("tables", {})["tab_tax_reform_event_study"] = (
+        t, "R&D tax-incentive reforms: staggered event study", "tab:taxes")
+    L += [md_table(t), "\nPre-trends are not significant for either "
+          "outcome, so parallel trends are plausible\n(unlike EU accession, "
+          "B9). R&D intensity rises after reforms but imprecisely;\noutput "
+          "per worker does not move.\n"]
+    d = df.copy()
+    d["subsidy_pp"] = 100 * d["RD_subsidy_large_profit"]
+    rows = []
+    for out in ("RD_pct_GDP", "Y_per_worker"):
+        lp = causal.local_projections(d, out, "subsidy_pp", 5, 1)
+        for _, r in lp.iterrows():
+            rows.append({"Outcome": out, "h": int(r.h), "β (% per pp)": r.beta,
+                         "SE": r.se, "p": pstar(r.p)})
+    L += ["**D3 · Local projections of a 1 pp change in the tax subsidy "
+          "rate:**\n", md_table(pd.DataFrame(rows)),
+          "\nContinuous subsidy changes are followed by *lower* R&D "
+          "intensity after 3-5 years — consistent\nwith governments raising "
+          "support when R&D is weak (policy endogeneity). The event study\n"
+          "(D2), with testable pre-trends, is the preferred design.\n"]
+    rows = []
+    for out in ("Y_per_worker", "GDP_pc_2015usd", "Employment", "RD_pct_GDP"):
+        lp = causal.local_projections(df, out, "Gov_balance_pct_GDP", 5, 1)
+        rec = {"Outcome": out}
+        for _, r in lp.iterrows():
+            rec[f"h={int(r.h)}"] = f"{r.beta:+.2f}{stars(r.p)}"
+        rows.append(rec)
+    L += ["**D4 · Local projections of a 1 pp improvement in the "
+          "government balance:**\n", md_table(pd.DataFrame(rows)),
+          "\nOutput per worker and GDP per capita rise after the balance "
+          "improves while employment does\nnot move, so this is not a "
+          "labour-shedding artefact. But the *headline* balance improves\n"
+          "automatically in booms, so these responses mix fiscal policy with "
+          "the business cycle.\nA causal fiscal-consolidation test needs the "
+          "cyclically adjusted balance (AMECO `UBLGAP`).\n"]
+    return L
+
+
 def make_figures(root):
     """Figures (PNG + PDF) and LaTeX tables from the stashed estimates."""
     import figures as F
@@ -402,6 +493,8 @@ def make_figures(root):
         made.append(F.fig_dml(pd.DataFrame(ART["dml"]), fdir))
     if "beta" in ART:
         made.append(F.fig_beta(*ART["beta"], fdir))
+    if "tax_es" in ART:
+        made.append(F.fig_tax_reforms(ART["tax_es"], fdir))
     for name, (df_, cap, lab) in ART.get("tables", {}).items():
         with open(os.path.join(tdir, f"{name}.tex"), "w",
                   encoding="utf-8") as fh:
@@ -501,6 +594,8 @@ def track_b(quick):
           md_table(dm.by_group.assign(p=dm.by_group.p.map(pstar))), ""]
     L += gmm_section(df)
     L += beta_convergence(df)
+    if "RD_subsidy_large_profit" in df or "Gov_balance_pct_GDP" in df:
+        L += policy_section(df, nb)
     rows = []
     d0 = pd.read_csv(LEVELS)
     grid = (("Luxembourg dropped, 1998+", ["Luxembourg"], 1998),

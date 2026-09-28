@@ -20,9 +20,9 @@ wherever a family is run over many variables.
 | H9 | Foreign R&D spills over through trade | Coe & Helpman (1995) | Trade-weighted foreign R&D stock in FE | 📥 trade weights |
 | H10 | Productivity series share common shocks (cross-sectional dependence) | Pesaran (2004, 2007) | CD test; CIPS unit root; Driscoll-Kraay SE | ✅ Tab 2 CD, Tab 10 CIPS, Tab 12 DK |
 | H11 | Productivity growth broke after 2008-09 and 2020 | Productivity-slowdown literature | Chow tests at candidate years; year effects | ✅ Tab 2 breaks |
-| H12 | R&D tax-credit introductions raise business R&D and, with a lag, productivity | Bloom, Griffith & Van Reenen (2002); Dechezleprêtre et al. (2023) | Staggered event study (Callaway-Sant'Anna), synthetic control | ✅ Tab 14 design (custom events); 📥 OECD B-index dates |
-| H13 | Public R&D (GBARD) crowds in private R&D | David, Hall & Toole (2000) | FE / local projections of BERD on GBARD | 🔧 Tab 14 LPs ready; 📥 GBARD, BERD |
-| H14 | Fiscal consolidations reduce R&D and long-run productivity (hysteresis) | Fatás & Summers (2018); Alesina et al. (2019) | Local projections on narrative consolidation shocks | 🔧 Tab 14 LPs ready; 📥 IMF episodes, AMECO |
+| H12 | R&D tax-credit introductions raise business R&D and, with a lag, productivity | Bloom, Griffith & Van Reenen (2002); Dechezleprêtre et al. (2023) | Staggered event study (Callaway-Sant'Anna), synthetic control | ✅ Tab 14 event study on OECD subsidy-jump reform dates (D2): R&D intensity +3-5 %, n.s.; productivity none |
+| H13 | Public R&D (GBARD) crowds in private R&D | David, Hall & Toole (2000) | FE / local projections of BERD on GBARD | 🔧 designs ready; 📥 GBARD 2008-2016 and BERD by source of funds |
+| H14 | Fiscal consolidations reduce R&D and long-run productivity (hysteresis) | Fatás & Summers (2018); Alesina et al. (2019) | Local projections on narrative consolidation shocks | ◐ headline balance (D4); 📥 cyclically adjusted balance (AMECO UBLGAP) for a causal test |
 | H15 | EU Cohesion funds accelerate catch-up | Becker, Egger & von Ehrlich (2010) | Local projections / synthetic control on fund inflows | ✅ Tab 14 designs; 📥 Cohesion data |
 | H16 | Institutional quality conditions R&D returns | Rodrik, Subramanian & Trebbi (2004) | R&D × WGI interaction | 📥 WGI |
 | H17 | Country effects dominate variation (entity FE justified) | — | ANOVA / Kruskal-Wallis, η², between/within decomposition | ✅ Tab 2 |
