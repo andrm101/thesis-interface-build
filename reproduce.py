@@ -377,13 +377,23 @@ def beta_convergence(df):
             "counterpart.\n"]
 
 
+D4_NOTE = ("The headline balance improves automatically in booms; the "
+           "cyclically adjusted balance\n(AMECO `UBLGAP`) removes that "
+           "component, so its row is the closer-to-causal fiscal test.\n")
+D5_NOTE = ("`NonGBARD_RD_pct_GDP` = R&D intensity − GBARD in % of GDP, a "
+           "proxy for privately financed R&D\n(GBARD also covers R&D performed "
+           "abroad or via EU programmes, so the proxy is rough).\nA multiplier "
+           "below 1 means part of the budget increase does not show up as "
+           "extra R&D.\n")
+
+
 def policy_section(df, nb):
     """D: R&D tax-incentive reforms and fiscal balance (policy_data.py)."""
     L = ["## Track B, part D — policy variables (`data/raw/policy/`)\n",
          "R&D tax generosity = OECD implied tax subsidy rate (1 − B-index), "
          "large profitable firm;\nfiscal stance = general government net "
          "lending, % of GDP (Eurostat).\n"]
-    cols = [c for c in ("GBARD_mEUR", "Gov_balance_pct_GDP",
+    cols = [c for c in ("GBARD_mEUR", "Gov_balance_pct_GDP", "CAB_pct_potGDP",
                         "RD_subsidy_large_profit") if c in df]
     cov = policy_data.coverage(df, sorted(df["Country"].unique()), cols,
                                window=(2000, 2023))
@@ -398,9 +408,18 @@ def policy_section(df, nb):
                                    or "—"})
     L += ["**D1 · Coverage, 2000-2023** (full table: "
           "`data/policy_coverage.csv`):\n", md_table(pd.DataFrame(summ)),
-          "\n`GBARD_mEUR` 2008-2016 is missing from the current NABS 2007 "
-          "export (default view = last\n10 years); GBARD analyses wait for "
-          "the full-period file.\n"]
+          "\nGBARD = government budget allocations for R&D (NABS 1992 ≤ 2003, "
+          "NABS 2007 from 2004);\nCAB = cyclically adjusted net lending, % of "
+          "potential GDP (AMECO `UBLGAP`).\n"]
+    if "GERD_mEUR_eurostat" in df:
+        x = df[["GERD_mEUR", "GERD_mEUR_eurostat"]].dropna()
+        dev = (x["GERD_mEUR"] / x["GERD_mEUR_eurostat"] - 1).abs()
+        L.append(f"GERD cross-check (workbook vs Eurostat `rd_e_gerdfund`, "
+                 f"{len(x)} country-years): median |gap| "
+                 f"{100 * dev.median():.1f}%, {int((dev > 0.05).sum())} "
+                 "above 5% (vintage revisions, mostly\nPortugal ≤ 2012). The "
+                 "workbook's Slovakia/Slovenia GERD rows were swapped and are "
+                 "corrected\nin `build_panel.py`.\n")
     if "RD_tax_reform_year" not in df:
         return L
     ev = (df.dropna(subset=["RD_tax_reform_year"]).groupby("Country")
@@ -450,21 +469,63 @@ def policy_section(df, nb):
           "support when R&D is weak (policy endogeneity). The event study\n"
           "(D2), with testable pre-trends, is the preferred design.\n"]
     rows = []
-    for out in ("Y_per_worker", "GDP_pc_2015usd", "Employment", "RD_pct_GDP"):
-        lp = causal.local_projections(df, out, "Gov_balance_pct_GDP", 5, 1)
-        rec = {"Outcome": out}
+    bals = [b for b in ("Gov_balance_pct_GDP", "CAB_pct_potGDP") if b in df]
+    for bal in bals:
+        for out in ("Y_per_worker", "GDP_pc_2015usd", "Employment",
+                    "RD_pct_GDP"):
+            lp = causal.local_projections(df, out, bal, 5, 1)
+            rec = {"Balance": "headline" if bal.startswith("Gov") else
+                   "cyclically adj.", "Outcome": out}
+            for _, r in lp.iterrows():
+                rec[f"h={int(r.h)}"] = f"{r.beta:+.2f}{stars(r.p)}"
+            rows.append(rec)
+    t = pd.DataFrame(rows)
+    ART.setdefault("tables", {})["tab_fiscal_lp"] = (
+        t, "Local projections of a 1 pp improvement in the government "
+        "balance", "tab:fiscal")
+    L += ["**D4 · Local projections of a 1 pp improvement in the "
+          "government balance (headline vs cyclically adjusted):**\n",
+          md_table(t), "\n" + D4_NOTE]
+    if "GBARD_pct_GDP" in df:
+        L += gbard_section(df)
+    return L
+
+
+def gbard_section(df):
+    """D5: public R&D budgets (GBARD) — additionality / crowding-in."""
+    d = df.copy()
+    d["GBARD_0.1pp"] = 10 * d["GBARD_pct_GDP"]
+    state = (d["Country"].map(groups_apriori(d)) == "Emerging").astype(float)
+
+    def row(lp, **lab):
+        rec = dict(lab)
         for _, r in lp.iterrows():
             rec[f"h={int(r.h)}"] = f"{r.beta:+.2f}{stars(r.p)}"
-        rows.append(rec)
-    L += ["**D4 · Local projections of a 1 pp improvement in the "
-          "government balance:**\n", md_table(pd.DataFrame(rows)),
-          "\nOutput per worker and GDP per capita rise after the balance "
-          "improves while employment does\nnot move, so this is not a "
-          "labour-shedding artefact. But the *headline* balance improves\n"
-          "automatically in booms, so these responses mix fiscal policy with "
-          "the business cycle.\nA causal fiscal-consolidation test needs the "
-          "cyclically adjusted balance (AMECO `UBLGAP`).\n"]
-    return L
+        return rec
+
+    rows = []
+    for out in ("RD_pct_GDP", "NonGBARD_RD_pct_GDP"):
+        lp = causal.local_projections(d, out, "GBARD_pct_GDP", 5, 1,
+                                      levels=True)
+        rows.append(row(lp, Outcome=out, Sample="All"))
+        lp = causal.local_projections(d, out, "GBARD_pct_GDP", 5, 1,
+                                      state=state, levels=True,
+                                      state_names=("Emerging", "Innovative"))
+        for st, g in lp.groupby("state", sort=False):
+            rows.append(row(g, Outcome=out, Sample=st))
+    t = pd.DataFrame(rows)
+    ART.setdefault("tables", {})["tab_gbard_lp"] = (
+        t, "Additionality of public R&D budgets (pp per pp of GDP)",
+        "tab:gbard")
+    rows = [row(causal.local_projections(d, out, "GBARD_0.1pp", 5, 1),
+                Outcome=out)
+            for out in ("Y_per_worker", "Patents_per_million")]
+    return ["**D5 · Public R&D budgets (GBARD): additionality.** Response "
+            "in pp of GDP to a 1 pp of GDP rise\nin GBARD — the R&D "
+            "multiplier; for R&D not financed by the budget, > 0 = "
+            "crowding-in,\n< 0 = crowding-out:\n", md_table(t),
+            "\nDownstream outcomes, % response to a 0.1 pp of GDP rise in "
+            "GBARD:\n", md_table(pd.DataFrame(rows)), "\n" + D5_NOTE]
 
 
 def make_figures(root):

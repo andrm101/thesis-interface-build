@@ -83,6 +83,7 @@ class CausalTabMixin:
         self.cz_sc_unit = tk.StringVar(value="Poland")
         self.cz_sc_year = tk.StringVar(value="2004")
         self.cz_sc_demean = tk.BooleanVar(value=True)
+        self.cz_lp_levels = tk.BooleanVar(value=False)
         grid = [
             ("LP horizon:", ttk.Spinbox(opts, from_=2, to=10, width=4,
                                         textvariable=self.cz_h)),
@@ -121,6 +122,9 @@ class CausalTabMixin:
         ttk.Combobox(opts2, textvariable=self.cz_learner,
                      values=("Random Forest", "Lasso"), state="readonly",
                      width=15).grid(row=2, column=1, sticky=tk.W)
+        ttk.Checkbutton(opts2, text="LP in levels",
+                        variable=self.cz_lp_levels).grid(row=2, column=2,
+                                                         padx=4)
         self.gm_method = tk.StringVar(value="System")
         self.gm_ylags  = tk.IntVar(value=2)
         self.gm_lo     = tk.IntVar(value=2)
@@ -337,8 +341,11 @@ class CausalTabMixin:
         else:
             state, names = None, ("All", "")
 
+        lev = self.cz_lp_levels.get()
+        unit = "" if lev else "100·log "
+
         def show(t):
-            L = [f"PANEL LOCAL PROJECTIONS — response of 100·log {y}\n"
+            L = [f"PANEL LOCAL PROJECTIONS — response of {unit}{y}\n"
                  f"{'='*62}\n  shock: Δ{rd} (one unit);  2 lags of Δshock "
                  f"and Δy;  two-way FE;\n  SE clustered by country.  "
                  f"State: {st}\n\n",
@@ -346,9 +353,12 @@ class CausalTabMixin:
             for _, r in t.iterrows():
                 L.append(f"  {r.h:>2} {r.state:<16}{r.beta:>8.2f}"
                          f"{r.se:>8.2f}{self._p(r.p):>11}{r.n:>6}\n")
-            L.append("\n  β_h = % change in the outcome h years after a "
-                     "one-unit rise\n  in the shock variable (e.g. +1 pp "
-                     "of GDP on R&D).\n")
+            L.append(("\n  β_h = change in the outcome, in its own units, "
+                      "h years after a one-unit\n  rise in the shock (e.g. pp "
+                      "of R&D per pp of GBARD).\n") if lev else
+                     ("\n  β_h = % change in the outcome h years after a "
+                      "one-unit rise\n  in the shock variable (e.g. +1 pp "
+                      "of GDP on R&D).\n"))
             clear_txt(self.cz_txt); write(self.cz_txt, "".join(L))
             fig = self._cz_fig()
             ax = fig.add_subplot(111)
@@ -360,7 +370,7 @@ class CausalTabMixin:
                                 alpha=0.15)
             ax.axhline(0, color=theme.FG, lw=0.7)
             ax.set_xlabel("years after shock (h)")
-            ax.set_ylabel(f"% response of {y}")
+            ax.set_ylabel(f"{'response' if lev else '% response'} of {y}")
             ax.set_title("Local-projection impulse responses (95 % CI)",
                          color=theme.FG)
             ax.legend(fontsize=8)
@@ -368,7 +378,8 @@ class CausalTabMixin:
 
         self._cz_run("Local projections",
                      lambda: causal.local_projections(df, y, rd, H, 2, state,
-                                                      names), show)
+                                                      names, levels=lev),
+                     show)
 
     # ── 3. Event study ────────────────────────────────────────────────────
     def _cz_event(self):

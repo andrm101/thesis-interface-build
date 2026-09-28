@@ -64,7 +64,14 @@ threshold models, clustering) should be re-run on the rebuilt panel.
 |---|---|---|
 | General government net lending, % GDP | complete for all 24 screened countries | headline balance — procyclical |
 | OECD implied R&D tax subsidy rate | complete for 22 of 24 | Croatia sparse (12 gaps); Greece from 2004. Cyprus, Malta and Romania only have profitable-firm scenarios |
-| GBARD (million euro) | incomplete everywhere | the NABS 2007 export covers 2017-2026 only (Eurostat's default view): **2008-2016 missing**; Cyprus absent from the NABS 2007 file; Czechia from 2002, Hungary from 2005 |
+| Cyclically adjusted balance, % potential GDP (AMECO `UBLGAP`) | complete for 23 of 24 | Croatia from 2001 |
+| GBARD (million euro) | complete for 16 of 24 | NABS 1992 ≤ 2003, NABS 2007 from 2004. Gaps: Croatia from 2008, Hungary from 2005, Czechia from 2002, Cyprus 2004+ with gaps; 1-3 gap years in Italy, Lithuania, Poland, Sweden |
+
+**GERD (workbook) vs Eurostat `rd_e_gerdfund`:** median gap 0.4 %. The
+workbook's **Slovakia and Slovenia GERD rows are swapped** in every year
+(corrected in `build_panel.py`; only `GBARD_share_GERD` used that column).
+The remaining gaps above 5 % are vintage revisions (Portugal ≤ 2012,
+Austria and Hungary in early years).
 
 GBARD totals are spliced across the NABS 1992 and NABS 2007 classifications
 (NABS 2007 preferred where both exist); each value's source is kept in

@@ -113,9 +113,18 @@ the one originally given, and with less certainty. IDs refer to
    Czechia 2005, Lithuania 2008, Slovakia 2015, Poland 2016, Germany 2020)
    pass the parallel-trends check. R&D intensity rises by about 3-5 % after a
    reform, growing to 6-10 % after five years, but with wide intervals; output
-   per worker does not respond within five years (D2, Fig. 8). Fiscal
-   tightening appears to precede faster growth (D4), but with the headline
-   balance that mostly reflects the business cycle, not policy.
+   per worker does not respond within five years (D2, Fig. 8).
+9. **Public R&D budgets partly crowd out private R&D, above all in the
+   leaders.** A 1 pp of GDP rise in government R&D budgets (GBARD) raises
+   total R&D intensity by only 0.4-0.6 pp: R&D not financed by the budget
+   falls. In the Emerging group that dip fades within two years, whereas
+   in the Innovative group it persists at about −0.6 pp (D5).
+10. **Fiscal tightening costs output briefly, not productivity for good.**
+   The headline balance suggests tightening precedes faster growth, but
+   that is the business cycle. With the cyclically adjusted balance (AMECO)
+   a 1 pp tightening lowers output per worker by about 0.4 % for two years,
+   and the effect fades to zero by year 3. R&D intensity does not fall, so
+   there is no sign of hysteresis (D4).
 
 **How to phrase it in the thesis.** Present the GERD paradox as a problem of
 *timing and reverse causality* rather than of aggregation alone: R&D
@@ -127,9 +136,8 @@ is misaligned.
 
 **Limitations.** 24 countries and 24 years (small N for GMM and clustering);
 the thesis panel stores growth indices, not levels; the causal designs have
-only partial policy data — tax incentives and the headline fiscal balance
-are complete, but government R&D budgets lack 2008-2016 and the
-cyclically adjusted balance is not yet included (`data/policy_coverage.csv`);
+policy data are near-complete for 2000-2023 (`data/policy_coverage.csv`),
+but R&D by source of funds is proxied (total R&D minus the public budget);
 log productivity has a unit root (B5), so level regressions rely on the
 dynamic specifications.
 
@@ -255,7 +263,7 @@ countries (or later years); the leaky random-K-fold R² is shown beside it;
 ### Reaching every result
 
 `python reproduce.py` regenerates all of the following into
-[`results/RESULTS.md`](results/RESULTS.md) (≈ 2 minutes; `--quick` for a
+[`results/RESULTS.md`](results/RESULTS.md) (≈ 5 minutes; `--quick` for a
 fast pass). IDs refer to sections of that file. Add `--figures` to also
 write the thesis figures to [`results/figures/`](results/figures) (PNG and
 PDF) and the main tables to [`results/tables/`](results/tables) as LaTeX
@@ -296,7 +304,8 @@ its own marker shape, so they remain readable in greyscale print.
 | D1 | Policy-data coverage | B | `data/policy_coverage.csv` (written by `build_panel.py`) |
 | D2 | R&D tax-reform event study | B | Tab 14 → Events: *R&D tax reforms* → Event Study (outcome `RD_pct_GDP` or `Y_per_worker`) |
 | D3 | Local projections of tax-subsidy changes | B | Tab 14 → treatment `RD_subsidy_large_profit` → Local Projections |
-| D4 | Local projections of the fiscal balance | B | Tab 14 → treatment `Gov_balance_pct_GDP` → Local Projections |
+| D4 | Local projections of the fiscal balance, headline and cyclically adjusted | B | Tab 14 → treatment `Gov_balance_pct_GDP` / `CAB_pct_potGDP` → Local Projections |
+| D5 | Public R&D budgets: additionality / crowding-in | B | Tab 14 → treatment `GBARD_pct_GDP`, *LP in levels* → Local Projections (outcome `RD_pct_GDP` / `NonGBARD_RD_pct_GDP`) |
 | — | Causal scenario | B | Tab 7 → Causal Scenario |
 
 ---
@@ -369,9 +378,11 @@ OECD exports are present in `data/raw/policy/`:
 
 | File | Source | Becomes |
 |---|---|---|
-| `gba_nabsfin92.xlsx` + `gba_nabsfin07.xlsx` | Eurostat GBARD (NABS 1992 ≤ 2007, NABS 2007 ≥ 2007), spliced on the total | `GBARD_mEUR`, `GBARD_per_capita_EUR`, `GBARD_share_GERD` |
+| `gba_nabsfin92.xlsx` + `gba_nabsfin07.xlsx` | Eurostat GBARD (NABS 1992 ≤ 2003, NABS 2007 ≥ 2004), spliced on the total | `GBARD_mEUR`, `GBARD_per_capita_EUR`, `GBARD_share_GERD`, `GBARD_pct_GDP`, `NonGBARD_RD_pct_GDP` |
 | `oecd_rdsub.xlsx` | OECD implied R&D tax subsidy rates (1 − B-index), 2000-2025 | `RD_subsidy_{sme,large}_{profit,loss}`, `RD_tax_reform_year` |
-| `gov_10dd_edpt1.xlsx` | Eurostat general government net lending, % GDP, 1995-2025 | `Gov_balance_pct_GDP`, `Fiscal_consolidation` |
+| `gov_10dd_edpt1.xlsx` | Eurostat general government net lending, % GDP, 1995-2025 | `Gov_balance_pct_GDP` |
+| `ameco_ublgap.xlsx` | AMECO `UBLGAP` cyclically adjusted net lending, % of potential GDP (DBnomics export) | `CAB_pct_potGDP`, `Fiscal_consolidation` (≥ 1.5 pp improvement) |
+| `rd_e_gerdfund.xlsx` | Eurostat GERD, million euro | `GERD_mEUR_eurostat` (cross-check of the workbook) |
 
 `build_panel.py` writes the coverage per country and variable to
 `data/policy_coverage.csv`. Export Eurostat tables with **all years
@@ -405,9 +416,8 @@ Track B adds the level variables listed in `build_panel.py`.
 ### Extending the data
 
 [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md) lists open sources for the
-variables still missing — government R&D budgets (GBARD), OECD R&D
-tax-incentive rates and introduction dates, AMECO fiscal balances, EU
-Cohesion and Horizon funding, governance indicators. The Tab 14 designs
+variables still missing — R&D by source of funds, EU Cohesion and Horizon
+funding, trade weights, governance indicators. The Tab 14 designs
 take them directly (e.g. custom events `Poland:2016, Slovakia:2015`).
 
 ---

@@ -6,7 +6,7 @@ python reproduce.py --figures      # ≈ 2 minutes
 ```
 
 This writes three outputs:
-- [`results/RESULTS.md`](https://github.com/andrm101/thesis-interface-build/blob/main/results/RESULTS.md): every headline number, sections A1–A6, B1–B13, C1 and D1–D4.
+- [`results/RESULTS.md`](https://github.com/andrm101/thesis-interface-build/blob/main/results/RESULTS.md): every headline number, sections A1–A6, B1–B13, C1 and D1–D5.
 - [`results/figures/`](https://github.com/andrm101/thesis-interface-build/blob/main/results/figures): eight figures, PNG and PDF.
 - [`results/tables/`](https://github.com/andrm101/thesis-interface-build/blob/main/results/tables): LaTeX `booktabs` tables for `\input{}`.
 

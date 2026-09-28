@@ -12,6 +12,10 @@ OECD Data Explorer table export with the default layout):
   gov_10dd_edpt1.xlsx  General government net lending, % of GDP
   oecd_rdsub.xlsx      OECD implied R&D tax subsidy rates (1 − B-index),
                        SME / large firm × profitable / loss-making
+  ameco_ublgap.xlsx    AMECO UBLGAP, cyclically adjusted net lending,
+                       % of potential GDP (DBnomics xlsx export)
+  rd_e_gerdfund.xlsx   Eurostat GERD, all sectors, million euro (cross-check
+                       of the workbook's GERD_mEUR)
 
 Splice rule for GBARD: only the *breakdown by objective* changed between
 NABS 1992 and NABS 2007, not the total, so the totals are spliced
@@ -30,7 +34,8 @@ import pandas as pd
 HERE = os.path.dirname(os.path.abspath(__file__))
 POLICY_DIR = os.path.join(HERE, "data", "raw", "policy")
 FILES = {"gba92": "gba_nabsfin92.xlsx", "gba07": "gba_nabsfin07.xlsx",
-         "gov": "gov_10dd_edpt1.xlsx", "rdsub": "oecd_rdsub.xlsx"}
+         "gov": "gov_10dd_edpt1.xlsx", "rdsub": "oecd_rdsub.xlsx",
+         "ameco": "ameco_ublgap.xlsx", "gerd": "rd_e_gerdfund.xlsx"}
 WINDOW = (1998, 2023)
 
 NAME_FIX = {"Slovak Republic": "Slovakia", "Czech Republic": "Czechia",
@@ -132,6 +137,25 @@ def read_oecd_rdsub(path: str) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+# ── AMECO via DBnomics ─────────────────────────────────────────────────────
+def read_ameco(path: str) -> pd.DataFrame:
+    """Long frame (Country, Year, value) from a DBnomics AMECO export: a
+    'period' column plus one column per series, headed
+    '… – <Country> (AMECO/<code>/<ISO>…)'."""
+    d = pd.read_excel(path, sheet_name=0, engine="calamine", header=None)
+    rows = []
+    for j in range(1, d.shape[1]):
+        m = re.search(r"–\s*([^–]+?)\s*\(AMECO/", str(d.iat[0, j]))
+        if not m:
+            continue
+        c = _clean_name(m.group(1))
+        for i in range(1, len(d)):
+            y = _year(d.iat[i, 0])
+            if y:
+                rows.append({"Country": c, "Year": y, "value": _num(d.iat[i, j])})
+    return pd.DataFrame(rows)
+
+
 # ── assemble ───────────────────────────────────────────────────────────────
 def build(policy_dir: str = POLICY_DIR) -> pd.DataFrame:
     """Country × Year frame of policy variables (+ `_src` provenance)."""
@@ -158,6 +182,14 @@ def build(policy_dir: str = POLICY_DIR) -> pd.DataFrame:
         v = read_eurostat(p("gov"), **{"unit of measure": "Percentage of gross"})
         parts.append(v.rename(columns={"value": "Gov_balance_pct_GDP"})
                      [["Country", "Year", "Gov_balance_pct_GDP"]])
+    if os.path.exists(p("ameco")):
+        a = read_ameco(p("ameco"))
+        parts.append(a.rename(columns={"value": "CAB_pct_potGDP"})
+                     [["Country", "Year", "CAB_pct_potGDP"]])
+    if os.path.exists(p("gerd")):
+        e = read_eurostat(p("gerd"), **{"unit of measure": "Million euro"})
+        parts.append(e.rename(columns={"value": "GERD_mEUR_eurostat"})
+                     [["Country", "Year", "GERD_mEUR_eurostat"]])
     if os.path.exists(p("rdsub")):
         s = read_oecd_rdsub(p("rdsub"))
         s["col"] = "RD_subsidy_" + s["firm"] + "_" + s["scenario"]
@@ -220,8 +252,9 @@ def tax_reform_events(df: pd.DataFrame, col="RD_subsidy_large_profit",
 def consolidation_episodes(df: pd.DataFrame, col="Gov_balance_pct_GDP",
                            threshold: float = 1.5) -> pd.Series:
     """0/1 indicator: government balance improves by ≥ threshold pp of GDP
-    in a year (a large fiscal tightening; headline balance, so cyclical
-    swings are not removed — see docs)."""
+    in a year (a large fiscal tightening). Use the cyclically adjusted
+    balance (`CAB_pct_potGDP`) where available: the headline balance also
+    improves automatically in booms."""
     d = df.sort_values(["Country", "Year"])
     dbal = d.groupby("Country")[col].diff()
     return (dbal >= threshold).astype(float).where(dbal.notna()).reindex(df.index)

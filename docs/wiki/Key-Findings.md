@@ -76,7 +76,21 @@ A naive Callaway–Sant'Anna event study finds output per worker about 14 % high
 
 **Continuous subsidy changes behave differently.** They are followed by *lower* R&D intensity (D3), which suggests governments raise support when R&D is weak. That policy endogeneity is why the event study, with its testable pre-trends, is the preferred design.
 
-**The fiscal result is not causal.** Output rises after the government balance improves, while employment does not move (D4). But the headline balance improves automatically in booms, so this is mostly the business cycle. A causal test needs the cyclically adjusted balance.
+## 7b. Public R&D budgets partly crowd out private R&D
+
+A 1 pp of GDP rise in government budget allocations for R&D (GBARD) raises total R&D intensity by only **0.4–0.6 pp** (D5). R&D not financed by the budget therefore falls:
+- **Emerging group:** the dip lasts about two years, then fades to zero, so the budget adds to R&D almost one for one.
+- **Innovative group:** the dip persists at about −0.6 pp, which looks like crowding-out where private R&D is already large.
+
+Privately financed R&D is proxied as total R&D minus GBARD, so treat the split as indicative.
+
+## 7c. Fiscal tightening costs output briefly, not productivity for good
+
+The headline balance suggests growth *follows* tightening (D4), but that is the business cycle. With AMECO's **cyclically adjusted** balance:
+- a 1 pp tightening lowers output per worker by about **0.4 % for two years**, and the effect is gone by year 3;
+- employment and R&D intensity do not fall.
+
+There is no sign of the hysteresis H14 predicts.
 
 ## 8. Other results
 

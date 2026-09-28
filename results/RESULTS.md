@@ -217,12 +217,17 @@ fiscal stance = general government net lending, % of GDP (Eurostat).
 
 | Variable | complete 2000-2023 | countries | incomplete |
 |---|---|---|---|
-| GBARD_mEUR | 0 | 24 | Austria: 2000–2023 (9 gaps); Belgium: 2000–2023 (9 gaps); Bulgaria: 2000–2023 (9 gaps); Croatia: 2017–2023 (17 gaps); Cyprus: 2004–2007 (20 gaps); Czechia: 2002–2023 (11 gaps); Denmark: 2000–2023 (9 gaps); Estonia: 2000–2023 (9 gaps); Finland: 2000–2023 (9 gaps); France: 2000–2023 (9 gaps); Germany: 2000–2023 (9 gaps); Greece: 2000–2023 (9 gaps); Hungary: 2005–2023 (14 gaps); Italy: 2000–2023 (12 gaps); Latvia: 2000–2023 (9 gaps); Lithuania: 2000–2023 (11 gaps); Netherlands: 2000–2023 (9 gaps); Poland: 2000–2023 (11 gaps); Portugal: 2000–2023 (9 gaps); Romania: 2000–2023 (9 gaps); Slovakia: 2000–2023 (9 gaps); Slovenia: 2000–2023 (9 gaps); Spain: 2000–2023 (9 gaps); Sweden: 2000–2023 (10 gaps) |
+| GBARD_mEUR | 16 | 24 | Croatia: 2008–2023 (8 gaps); Cyprus: 2004–2023 (4 gaps); Czechia: 2002–2023 (2 gaps); Hungary: 2005–2023 (5 gaps); Italy: 2000–2023 (3 gaps); Lithuania: 2000–2023 (2 gaps); Poland: 2000–2023 (2 gaps); Sweden: 2000–2023 (1 gaps) |
 | Gov_balance_pct_GDP | 24 | 24 | — |
+| CAB_pct_potGDP | 23 | 24 | Croatia: 2001–2023 (1 gaps) |
 | RD_subsidy_large_profit | 22 | 24 | Croatia: 2000–2023 (12 gaps); Greece: 2004–2023 (4 gaps) |
 
-`GBARD_mEUR` 2008-2016 is missing from the current NABS 2007 export (default view = last
-10 years); GBARD analyses wait for the full-period file.
+GBARD = government budget allocations for R&D (NABS 1992 ≤ 2003, NABS 2007 from 2004);
+CAB = cyclically adjusted net lending, % of potential GDP (AMECO `UBLGAP`).
+
+GERD cross-check (workbook vs Eurostat `rd_e_gerdfund`, 546 country-years): median |gap| 0.4%, 21 above 5% (vintage revisions, mostly
+Portugal ≤ 2012). The workbook's Slovakia/Slovenia GERD rows were swapped and are corrected
+in `build_panel.py`.
 
 **D2 · R&D tax-incentive reforms: staggered event study (Tab 14 → Events: R&D tax reforms):**
 
@@ -265,19 +270,45 @@ Continuous subsidy changes are followed by *lower* R&D intensity after 3-5 years
 with governments raising support when R&D is weak (policy endogeneity). The event study
 (D2), with testable pre-trends, is the preferred design.
 
-**D4 · Local projections of a 1 pp improvement in the government balance:**
+**D4 · Local projections of a 1 pp improvement in the government balance (headline vs cyclically adjusted):**
+
+| Balance | Outcome | h=0 | h=1 | h=2 | h=3 | h=4 | h=5 |
+|---|---|---|---|---|---|---|---|
+| headline | Y_per_worker | +0.12* | +0.30* | +0.42* | +0.58** | +0.79*** | +0.75*** |
+| headline | GDP_pc_2015usd | +0.15** | +0.30* | +0.40* | +0.57** | +0.78*** | +0.76*** |
+| headline | Employment | +0.01 | -0.01 | -0.00 | -0.01 | -0.00 | +0.03 |
+| headline | RD_pct_GDP | -0.36* | -0.20 | +0.26 | +0.50 | +0.29 | +0.19 |
+| cyclically adj. | Y_per_worker | -0.37*** | -0.38* | -0.18 | +0.05 | +0.20 | +0.17 |
+| cyclically adj. | GDP_pc_2015usd | -0.33*** | -0.38* | -0.22 | +0.06 | +0.19 | +0.18 |
+| cyclically adj. | Employment | +0.01 | -0.02 | -0.03 | -0.04 | -0.06 | -0.05 |
+| cyclically adj. | RD_pct_GDP | -0.22 | +0.12 | +0.66 | +0.94* | +0.74* | +0.43 |
+
+The headline balance improves automatically in booms; the cyclically adjusted balance
+(AMECO `UBLGAP`) removes that component, so its row is the closer-to-causal fiscal test.
+
+**D5 · Public R&D budgets (GBARD): additionality.** Response in pp of GDP to a 1 pp of GDP rise
+in GBARD — the R&D multiplier; for R&D not financed by the budget, > 0 = crowding-in,
+< 0 = crowding-out:
+
+| Outcome | Sample | h=0 | h=1 | h=2 | h=3 | h=4 | h=5 |
+|---|---|---|---|---|---|---|---|
+| RD_pct_GDP | All | +0.42*** | +0.56*** | +0.53*** | +0.36* | +0.38 | +0.45** |
+| RD_pct_GDP | Emerging | +0.40*** | +0.58*** | +0.59*** | +0.38 | +0.39 | +0.47* |
+| RD_pct_GDP | Innovative | +0.55*** | +0.49** | +0.24 | +0.26 | +0.34 | +0.37 |
+| NonGBARD_RD_pct_GDP | All | -0.58*** | -0.36*** | -0.13 | -0.21 | -0.26 | -0.20 |
+| NonGBARD_RD_pct_GDP | Emerging | -0.60*** | -0.34*** | -0.02 | -0.12 | -0.20 | -0.10 |
+| NonGBARD_RD_pct_GDP | Innovative | -0.45** | -0.50* | -0.69** | -0.64* | -0.58* | -0.67* |
+
+Downstream outcomes, % response to a 0.1 pp of GDP rise in GBARD:
 
 | Outcome | h=0 | h=1 | h=2 | h=3 | h=4 | h=5 |
 |---|---|---|---|---|---|---|
-| Y_per_worker | +0.12* | +0.30* | +0.42* | +0.58** | +0.79*** | +0.75*** |
-| GDP_pc_2015usd | +0.15** | +0.30* | +0.40* | +0.57** | +0.78*** | +0.76*** |
-| Employment | +0.01 | -0.01 | -0.00 | -0.01 | -0.00 | +0.03 |
-| RD_pct_GDP | -0.36* | -0.20 | +0.26 | +0.50 | +0.29 | +0.19 |
+| Y_per_worker | -0.27 | +0.35 | +0.83 | +0.87 | +0.44 | +0.19 |
+| Patents_per_million | -1.90 | -0.28 | -0.85 | -0.36 | -2.28 | +0.16 |
 
-Output per worker and GDP per capita rise after the balance improves while employment does
-not move, so this is not a labour-shedding artefact. But the *headline* balance improves
-automatically in booms, so these responses mix fiscal policy with the business cycle.
-A causal fiscal-consolidation test needs the cyclically adjusted balance (AMECO `UBLGAP`).
+`NonGBARD_RD_pct_GDP` = R&D intensity − GBARD in % of GDP, a proxy for privately financed R&D
+(GBARD also covers R&D performed abroad or via EU programmes, so the proxy is rough).
+A multiplier below 1 means part of the budget increase does not show up as extra R&D.
 
 **B12 · DML sensitivity (sample × learner):**
 

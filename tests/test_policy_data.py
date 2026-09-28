@@ -119,3 +119,34 @@ def test_coverage_reports_gaps():
     cov = P.coverage(df, ["A", "B"], ["x"], window=(2000, 2003))
     assert cov.set_index("Country").loc["A", "x"] == "2000–2003 (1 gaps)"
     assert cov.set_index("Country").loc["B", "x"] == "—"
+
+
+def test_read_ameco_dbnomics_layout(tmp_path):
+    f = tmp_path / "ameco.xlsx"
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(["period",
+               "Annually – (Percentage of potential GDP at current prices) – "
+               "Czech Republic (AMECO/UBLGAP/CZE.1.0.319.0.UBLGAP)",
+               "Annually – (Percentage of potential GDP at current prices) – "
+               "Slovakia (AMECO/UBLGAP/SVK.1.0.319.0.UBLGAP)"])
+    ws.append([2000, -3.5, None])
+    ws.append([2001, -2.0, -6.1])
+    wb.save(f)
+    d = P.read_ameco(str(f)).set_index(["Country", "Year"])["value"]
+    assert d[("Czechia", 2000)] == -3.5 and d[("Slovakia", 2001)] == -6.1
+    assert np.isnan(d[("Slovakia", 2000)])
+
+
+def test_local_projections_levels_option():
+    import causal
+    rng = np.random.default_rng(0)
+    rows = []
+    for c in range(12):
+        x = np.cumsum(rng.normal(size=20))
+        y = 0.5 * x + rng.normal(scale=0.05, size=20) + 10
+        rows += [{"Country": f"C{c}", "Year": 2000 + t, "x": x[t], "y": y[t]}
+                 for t in range(20)]
+    lp = causal.local_projections(pd.DataFrame(rows), "y", "x", 1, 1,
+                                  levels=True)
+    assert abs(lp.loc[lp.h == 0, "beta"].iloc[0] - 0.5) < 0.05

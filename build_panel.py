@@ -135,11 +135,19 @@ def merge_policy(df: pd.DataFrame, policy_dir: str | None = None) -> pd.DataFram
         d["GBARD_per_capita_EUR"] = d["GBARD_mEUR"] * 1e6 / d["Population"]
         # public R&D budget relative to total R&D spending (both in EUR)
         d["GBARD_share_GERD"] = d["GBARD_mEUR"] / d["GERD_mEUR"]
+        # GBARD in % of GDP without an EUR GDP series: share × R&D intensity
+        d["GBARD_pct_GDP"] = d["GBARD_share_GERD"] * d["RD_pct_GDP"]
+        # R&D not covered by the public budget (proxy for privately
+        # financed R&D; GBARD also funds R&D abroad and via EU channels)
+        d["NonGBARD_RD_pct_GDP"] = (d["RD_pct_GDP"] - d["GBARD_pct_GDP"]
+                                    ).where(lambda x: x > 0)
     if "RD_subsidy_large_profit" in d:
         ev = policy_data.tax_reform_events(d)
         d["RD_tax_reform_year"] = d["Country"].map(ev)
-    if "Gov_balance_pct_GDP" in d:
-        d["Fiscal_consolidation"] = policy_data.consolidation_episodes(d)
+    bal = next((c for c in ("CAB_pct_potGDP", "Gov_balance_pct_GDP")
+                if c in d), None)
+    if bal:
+        d["Fiscal_consolidation"] = policy_data.consolidation_episodes(d, bal)
     return d
 
 
@@ -163,6 +171,10 @@ def build(raw_path: str = DEFAULT_RAW) -> pd.DataFrame:
             for code, f in researcher_fix.items():
                 if code in blk.index:
                     blk.loc[code] *= f
+        if col == "GERD_mEUR" and {"SVK", "SVN"} <= set(blk.index):
+            # Slovakia / Slovenia rows are swapped in the raw GERD sheet
+            # (every year matches the other country in Eurostat rd_e_gerdfund)
+            blk.loc[["SVK", "SVN"]] = blk.loc[["SVN", "SVK"]].to_numpy()
         s = blk.stack(future_stack=True).rename(col)
         s.index.names = ["Code", "Year"]
         frames.append(s)
