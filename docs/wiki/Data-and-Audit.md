@@ -35,6 +35,19 @@ The workbook stays local. The rebuilt panel is committed as `data/panel_levels.c
 
 Full detail is in [`docs/DATA_AUDIT.md`](https://github.com/andrm101/thesis-interface-build/blob/main/docs/DATA_AUDIT.md). The corrections are locked by `tests/test_build_panel.py`.
 
+## Policy variables
+
+| Variable | Coverage 2000–2023 |
+|---|---|
+| General government balance, % GDP (Eurostat `gov_10dd_edpt1`) | complete |
+| OECD implied R&D tax subsidy rate | complete for 22 of 24 countries (Croatia sparse; Greece from 2004) |
+| GBARD, million euro (Eurostat NABS 1992 + NABS 2007, spliced) | complete for 16 of 24 (Croatia from 2008, Hungary from 2005, Czechia from 2002) |
+| Cyclically adjusted balance, % potential GDP (AMECO `UBLGAP`) | complete for 23 of 24 (Croatia from 2001) |
+
+**GERD cross-check.** Against Eurostat `rd_e_gerdfund`, the workbook's GERD matches within 0.4 % (median), except that the **Slovakia and Slovenia rows are swapped**. This is now corrected in `build_panel.py`.
+
+R&D tax-reform dates are derived from jumps in the subsidy rate, not hand-coded (see [[Key Findings]] §7).
+
 ## Consequences
 
 - K-Means on levels reproduces the thesis typology exactly.

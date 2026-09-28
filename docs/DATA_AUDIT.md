@@ -57,3 +57,26 @@ locks the findings below in place.
 
 Results that used `Human Capital Proxy` (panel FE, interaction and
 threshold models, clustering) should be re-run on the rebuilt panel.
+
+## Policy variables (`policy_data.py`)
+
+| Variable | Coverage 2000-2023 | Notes |
+|---|---|---|
+| General government net lending, % GDP | complete for all 24 screened countries | headline balance — procyclical |
+| OECD implied R&D tax subsidy rate | complete for 22 of 24 | Croatia sparse (12 gaps); Greece from 2004. Cyprus, Malta and Romania only have profitable-firm scenarios |
+| Cyclically adjusted balance, % potential GDP (AMECO `UBLGAP`) | complete for 23 of 24 | Croatia from 2001 |
+| GBARD (million euro) | complete for 16 of 24 | NABS 1992 ≤ 2003, NABS 2007 from 2004. Gaps: Croatia from 2008, Hungary from 2005, Czechia from 2002, Cyprus 2004+ with gaps; 1-3 gap years in Italy, Lithuania, Poland, Sweden |
+
+**GERD (workbook) vs Eurostat `rd_e_gerdfund`:** median gap 0.4 %. The
+workbook's **Slovakia and Slovenia GERD rows are swapped** in every year
+(corrected in `build_panel.py`; only `GBARD_share_GERD` used that column).
+The remaining gaps above 5 % are vintage revisions (Portugal ≤ 2012,
+Austria and Hungary in early years).
+
+GBARD totals are spliced across the NABS 1992 and NABS 2007 classifications
+(NABS 2007 preferred where both exist); each value's source is kept in
+`GBARD_src`. R&D tax-reform dates are derived, not hand-coded: the first
+year the large-firm subsidy rate rises ≥ 5 pp and stays up for two more
+years. The detected dates match well-documented reforms (Czechia 2005,
+France 2004, Lithuania 2008, Slovakia 2015, Poland 2016, Germany 2020).
+

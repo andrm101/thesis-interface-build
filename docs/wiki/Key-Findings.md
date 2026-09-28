@@ -64,7 +64,35 @@ A naive Callaway–Sant'Anna event study finds output per worker about 14 % high
 
 ![Event study](https://raw.githubusercontent.com/andrm101/thesis-interface-build/main/results/figures/fig4_event_study.png)
 
-## 7. Other results
+## 7. R&D tax incentives raise R&D spending a little, not productivity (yet)
+
+**How the reforms are dated.** The OECD's implied R&D tax subsidy rate (1 − B-index) dates each country's generosity reforms without any hand-coding: a reform is the first year the large-firm subsidy rises by at least 5 pp and stays up. That finds **17 reforms**, and the dates match well-documented ones, such as Czechia 2005, France 2004, Lithuania 2008, Slovakia 2015, Poland 2016 and Germany 2020 (D2).
+
+**Unlike EU accession, these reforms pass the parallel-trends check** (pre-trend p = 0.38–0.91). A staggered event study finds:
+- **R&D intensity:** about +3–5 % after a reform, growing to +6–10 % after five years. The intervals are wide, so it is not significant.
+- **Output per worker:** no response within five years.
+
+![R&D tax reforms](https://raw.githubusercontent.com/andrm101/thesis-interface-build/main/results/figures/fig8_tax_reforms.png)
+
+**Continuous subsidy changes behave differently.** They are followed by *lower* R&D intensity (D3), which suggests governments raise support when R&D is weak. That policy endogeneity is why the event study, with its testable pre-trends, is the preferred design.
+
+## 7b. Public R&D budgets partly crowd out private R&D
+
+A 1 pp of GDP rise in government budget allocations for R&D (GBARD) raises total R&D intensity by only **0.4–0.6 pp** (D5). R&D not financed by the budget therefore falls:
+- **Emerging group:** the dip lasts about two years, then fades to zero, so the budget adds to R&D almost one for one.
+- **Innovative group:** the dip persists at about −0.6 pp, which looks like crowding-out where private R&D is already large.
+
+Privately financed R&D is proxied as total R&D minus GBARD, so treat the split as indicative.
+
+## 7c. Fiscal tightening costs output briefly, not productivity for good
+
+The headline balance suggests growth *follows* tightening (D4), but that is the business cycle. With AMECO's **cyclically adjusted** balance:
+- a 1 pp tightening lowers output per worker by about **0.4 % for two years**, and the effect is gone by year 3;
+- employment and R&D intensity do not fall.
+
+There is no sign of the hysteresis H14 predicts.
+
+## 8. Other results
 
 - **Savings** are the most consistent productivity driver on the thesis panel (A2, A3), and weaker on the rebuilt panel (B3).
 - **Hausman** prefers fixed effects only at the 10 % level (p = 0.099; A2).

@@ -208,6 +208,108 @@ Negative β = initially poorer countries grew faster. With 8-15 countries per gr
 the within-group slopes are imprecise; the frontier-gap coefficient (B7) is the
 panel counterpart.
 
+## Track B, part D — policy variables (`data/raw/policy/`)
+
+R&D tax generosity = OECD implied tax subsidy rate (1 − B-index), large profitable firm;
+fiscal stance = general government net lending, % of GDP (Eurostat).
+
+**D1 · Coverage, 2000-2023** (full table: `data/policy_coverage.csv`):
+
+| Variable | complete 2000-2023 | countries | incomplete |
+|---|---|---|---|
+| GBARD_mEUR | 16 | 24 | Croatia: 2008–2023 (8 gaps); Cyprus: 2004–2023 (4 gaps); Czechia: 2002–2023 (2 gaps); Hungary: 2005–2023 (5 gaps); Italy: 2000–2023 (3 gaps); Lithuania: 2000–2023 (2 gaps); Poland: 2000–2023 (2 gaps); Sweden: 2000–2023 (1 gaps) |
+| Gov_balance_pct_GDP | 24 | 24 | — |
+| CAB_pct_potGDP | 23 | 24 | Croatia: 2001–2023 (1 gaps) |
+| RD_subsidy_large_profit | 22 | 24 | Croatia: 2000–2023 (12 gaps); Greece: 2004–2023 (4 gaps) |
+
+GBARD = government budget allocations for R&D (NABS 1992 ≤ 2003, NABS 2007 from 2004);
+CAB = cyclically adjusted net lending, % of potential GDP (AMECO `UBLGAP`).
+
+GERD cross-check (workbook vs Eurostat `rd_e_gerdfund`, 546 country-years): median |gap| 0.4%, 21 above 5% (vintage revisions, mostly
+Portugal ≤ 2012). The workbook's Slovakia/Slovenia GERD rows were swapped and are corrected
+in `build_panel.py`.
+
+**D2 · R&D tax-incentive reforms: staggered event study (Tab 14 → Events: R&D tax reforms):**
+
+Reform = first year the large-firm subsidy rate rises ≥ 5 pp and stays up ≥ 2 more years.
+Detected: France 2004, Belgium 2005, Czechia 2005, Portugal 2006, Slovenia 2006, Hungary 2007, Italy 2007, Lithuania 2008, Romania 2010, Greece 2013, Latvia 2014, Sweden 2014, Slovakia 2015, Poland 2016, Croatia 2019, Denmark 2020, Germany 2020.
+
+| Outcome | Controls | Detrended | Post ATT % | SE | Pre-trend p |
+|---|---|---|---|---|---|
+| RD_pct_GDP | Never treated | False | 2.806 | 4.340 | 0.382 |
+| RD_pct_GDP | Never treated | True | 5.436 | 4.016 | 0.382 |
+| RD_pct_GDP | Not yet treated | False | 3.630 | 4.054 | 0.648 |
+| RD_pct_GDP | Not yet treated | True | 3.170 | 3.598 | 0.648 |
+| Y_per_worker | Never treated | False | -0.022 | 1.559 | 0.699 |
+| Y_per_worker | Never treated | True | -1.928 | 4.022 | 0.699 |
+| Y_per_worker | Not yet treated | False | -1.193 | 1.350 | 0.910 |
+| Y_per_worker | Not yet treated | True | -1.042 | 2.919 | 0.910 |
+
+Pre-trends are not significant for either outcome, so parallel trends are plausible
+(unlike EU accession, B9). R&D intensity rises after reforms but imprecisely;
+output per worker does not move.
+
+**D3 · Local projections of a 1 pp change in the tax subsidy rate:**
+
+| Outcome | h | β (% per pp) | SE | p |
+|---|---|---|---|---|
+| RD_pct_GDP | 0 | 0.041 | 0.052 | 0.435 |
+| RD_pct_GDP | 1 | -0.007 | 0.096 | 0.939 |
+| RD_pct_GDP | 2 | -0.110 | 0.165 | 0.508 |
+| RD_pct_GDP | 3 | -0.215 | 0.111 | 0.054* |
+| RD_pct_GDP | 4 | -0.297 | 0.068 | 0.000*** |
+| RD_pct_GDP | 5 | -0.345 | 0.108 | 0.002*** |
+| Y_per_worker | 0 | -0.020 | 0.031 | 0.514 |
+| Y_per_worker | 1 | -0.051 | 0.066 | 0.438 |
+| Y_per_worker | 2 | -0.065 | 0.080 | 0.417 |
+| Y_per_worker | 3 | -0.049 | 0.084 | 0.562 |
+| Y_per_worker | 4 | -0.029 | 0.081 | 0.723 |
+| Y_per_worker | 5 | -0.037 | 0.063 | 0.564 |
+
+Continuous subsidy changes are followed by *lower* R&D intensity after 3-5 years — consistent
+with governments raising support when R&D is weak (policy endogeneity). The event study
+(D2), with testable pre-trends, is the preferred design.
+
+**D4 · Local projections of a 1 pp improvement in the government balance (headline vs cyclically adjusted):**
+
+| Balance | Outcome | h=0 | h=1 | h=2 | h=3 | h=4 | h=5 |
+|---|---|---|---|---|---|---|---|
+| headline | Y_per_worker | +0.12* | +0.30* | +0.42* | +0.58** | +0.79*** | +0.75*** |
+| headline | GDP_pc_2015usd | +0.15** | +0.30* | +0.40* | +0.57** | +0.78*** | +0.76*** |
+| headline | Employment | +0.01 | -0.01 | -0.00 | -0.01 | -0.00 | +0.03 |
+| headline | RD_pct_GDP | -0.36* | -0.20 | +0.26 | +0.50 | +0.29 | +0.19 |
+| cyclically adj. | Y_per_worker | -0.37*** | -0.38* | -0.18 | +0.05 | +0.20 | +0.17 |
+| cyclically adj. | GDP_pc_2015usd | -0.33*** | -0.38* | -0.22 | +0.06 | +0.19 | +0.18 |
+| cyclically adj. | Employment | +0.01 | -0.02 | -0.03 | -0.04 | -0.06 | -0.05 |
+| cyclically adj. | RD_pct_GDP | -0.22 | +0.12 | +0.66 | +0.94* | +0.74* | +0.43 |
+
+The headline balance improves automatically in booms; the cyclically adjusted balance
+(AMECO `UBLGAP`) removes that component, so its row is the closer-to-causal fiscal test.
+
+**D5 · Public R&D budgets (GBARD): additionality.** Response in pp of GDP to a 1 pp of GDP rise
+in GBARD — the R&D multiplier; for R&D not financed by the budget, > 0 = crowding-in,
+< 0 = crowding-out:
+
+| Outcome | Sample | h=0 | h=1 | h=2 | h=3 | h=4 | h=5 |
+|---|---|---|---|---|---|---|---|
+| RD_pct_GDP | All | +0.42*** | +0.56*** | +0.53*** | +0.36* | +0.38 | +0.45** |
+| RD_pct_GDP | Emerging | +0.40*** | +0.58*** | +0.59*** | +0.38 | +0.39 | +0.47* |
+| RD_pct_GDP | Innovative | +0.55*** | +0.49** | +0.24 | +0.26 | +0.34 | +0.37 |
+| NonGBARD_RD_pct_GDP | All | -0.58*** | -0.36*** | -0.13 | -0.21 | -0.26 | -0.20 |
+| NonGBARD_RD_pct_GDP | Emerging | -0.60*** | -0.34*** | -0.02 | -0.12 | -0.20 | -0.10 |
+| NonGBARD_RD_pct_GDP | Innovative | -0.45** | -0.50* | -0.69** | -0.64* | -0.58* | -0.67* |
+
+Downstream outcomes, % response to a 0.1 pp of GDP rise in GBARD:
+
+| Outcome | h=0 | h=1 | h=2 | h=3 | h=4 | h=5 |
+|---|---|---|---|---|---|---|
+| Y_per_worker | -0.27 | +0.35 | +0.83 | +0.87 | +0.44 | +0.19 |
+| Patents_per_million | -1.90 | -0.28 | -0.85 | -0.36 | -2.28 | +0.16 |
+
+`NonGBARD_RD_pct_GDP` = R&D intensity − GBARD in % of GDP, a proxy for privately financed R&D
+(GBARD also covers R&D performed abroad or via EU programmes, so the proxy is rough).
+A multiplier below 1 means part of the budget increase does not show up as extra R&D.
+
 **B12 · DML sensitivity (sample × learner):**
 
 | Sample | Learner | θ | θ p | ∂θ/∂gap | slope p | θ Innovative | θ Emerging |

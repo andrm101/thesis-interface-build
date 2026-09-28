@@ -121,16 +121,18 @@ def frontier_regression(df: pd.DataFrame, y_level: str, rd: str, gap: str,
 def local_projections(df: pd.DataFrame, y_level: str, shock: str,
                       horizons: int = 6, n_lags: int = 2,
                       state: pd.Series | None = None,
-                      state_names=("Catch-up", "Leader")) -> pd.DataFrame:
+                      state_names=("Catch-up", "Leader"),
+                      levels: bool = False) -> pd.DataFrame:
     """y_{t+h} − y_{t−1} = β_h·Δshock_t + Σ lags(Δshock, Δy) + α_i + λ_t.
 
     y = 100·log(y_level), so β_h is the % response of the outcome h years
     after a one-unit change in *shock*. If *state* (Country-Year aligned 0/1,
     1 = first state) is given, β_h is estimated separately per state.
+    With *levels*, y = y_level itself (β_h in the outcome's own units).
     Returns rows (h, state, beta, se, lo, hi, n).
     """
     d = _sorted(df)
-    d["_y"] = log_outcome(d, y_level)
+    d["_y"] = d[y_level] if levels else log_outcome(d, y_level)
     g = d.groupby("Country")
     d["_ds"] = g[shock].diff()
     d["_dy"] = g["_y"].diff()

@@ -10,3 +10,4 @@ statsmodels>=0.14
 linearmodels>=5.0
 arch>=6.0          # Phillips-Perron unit-root test
 openpyxl>=3.1      # .xlsx loading
+python-calamine>=0.2  # robust reader for Eurostat/OECD spreadsheet exports

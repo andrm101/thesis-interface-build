@@ -6,15 +6,12 @@
 - **Instrument sensitivity.** The positive GMM effect of R&D holds only in the shallow-lag specification that passes every diagnostic.
 - **The thesis panel stores growth indices.** Level results come from the rebuilt panel. Figures based on `Human Capital Proxy` from the submitted panel are affected by the row shift.
 - **Unit roots.** Log productivity is I(1) (CIPS), so level regressions rely on the dynamic specifications.
-- **No policy variables yet.** The event study and local projections are ready, but there is no data yet on R&D budgets or R&D tax-incentive reforms.
+- **Policy data.** Tax incentives, the headline and cyclically adjusted balances, and GBARD are near-complete for 2000–2023 (coverage per country in `data/policy_coverage.csv`). R&D by source of funds is proxied as total R&D minus GBARD.
 
 ## Next steps
 
-1. **Policy data.**
-   - Eurostat government budget allocations for R&D (`gba_nabsfin07`).
-   - OECD R&D tax-incentive rates and introduction dates (`DSD_RDTAX@DF_RDSUB`).
-   - AMECO structural balances.
-
-   With these, Tab 14's event study and local projections can test real R&D and fiscal policy changes, for example `Poland:2016, Slovakia:2015`. See [`docs/DATA_SOURCES.md`](https://github.com/andrm101/thesis-interface-build/blob/main/docs/DATA_SOURCES.md).
+1. **R&D by source of funds.** Export Eurostat `rd_e_gerdfund` with *Source of funds* = business enterprise and government, so the crowding-in test (D5) can use measured business-funded R&D instead of the proxy. See [`docs/DATA_SOURCES.md`](https://github.com/andrm101/thesis-interface-build/blob/main/docs/DATA_SOURCES.md).
 2. **External level data.** Penn World Table TFP levels would give a frontier gap independent of this panel.
-3. **Hypotheses.** Fifteen of the eighteen literature-based hypotheses in [`docs/HYPOTHESES.md`](https://github.com/andrm101/thesis-interface-build/blob/main/docs/HYPOTHESES.md) are testable now. The remaining three need the data above.
+3. **Hypotheses.** Of the eighteen literature-based hypotheses in [`docs/HYPOTHESES.md`](https://github.com/andrm101/thesis-interface-build/blob/main/docs/HYPOTHESES.md):
+   - sixteen are tested (H15, Cohesion funds, only as a ready design);
+   - H9 and H16 need further data: trade weights and governance indicators.

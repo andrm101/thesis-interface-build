@@ -30,6 +30,10 @@ INK, INK2, GRID = "#0b0b0b", "#52514e", "#e6e5e1"
 GROUP_STYLE = {"Innovative": (BLUE, "o"), "Emerging": (ORANGE, "s"),
                "All": (AQUA, "D")}
 WIDTH = 6.3                                   # inches, A4 text width
+# No creation timestamps, so regenerated figures are byte-identical when
+# their content is unchanged (clean git diffs).
+_META = {"pdf": {"CreationDate": None, "ModDate": None},
+         "png": {"Software": None}}
 
 
 def _style():
@@ -50,7 +54,8 @@ def _save(fig, outdir, name):
     fig.tight_layout()
     for ext in ("png", "pdf"):
         fig.savefig(os.path.join(outdir, f"{name}.{ext}"), dpi=200,
-                    bbox_inches="tight", pad_inches=0.05)
+                    bbox_inches="tight", pad_inches=0.05,
+                    metadata=_META[ext])
     plt.close(fig)
     return name
 
@@ -311,6 +316,35 @@ def fig_beta(cs, fits, outdir):
     fig.tight_layout(rect=(0, 0.08, 1, 1))
     for ext in ("png", "pdf"):
         fig.savefig(os.path.join(outdir, f"fig7_beta_convergence.{ext}"),
-                    dpi=200, bbox_inches="tight", pad_inches=0.05)
+                    dpi=200, bbox_inches="tight", pad_inches=0.05,
+                    metadata=_META[ext])
     plt.close(fig)
     return "fig7_beta_convergence"
+
+
+def fig_tax_reforms(results, outdir):
+    """results: {outcome label: EventStudyResult} for R&D tax reforms."""
+    fig, axes = plt.subplots(1, len(results), figsize=(WIDTH, 3.2),
+                             sharex=True)
+    axes = np.atleast_1d(axes)
+    for ax, (lab, r) in zip(axes, results.items()):
+        t = pd.concat([r.by_event_time,
+                       pd.DataFrame({"e": [-1], "att": [0.0], "lo": [0.0],
+                                     "hi": [0.0]})]).sort_values("e")
+        pre = t.e < 0
+        for mask, col, mk in ((pre, GREY, "s"), (~pre, BLUE, "o")):
+            q = t[mask]
+            ax.errorbar(q.e, q.att, yerr=[q.att - q.lo, q.hi - q.att],
+                        fmt=mk, color=col, capsize=2, ms=4.5, lw=1.2)
+        _zero(ax)
+        ax.axvline(-0.5, color=INK2, lw=0.8, ls=":")
+        ax.set_title(f"{lab}\npost ATT {r.overall_post:+.1f} %  ·  "
+                     f"pre-trend p = {r.pretrend_p:.2f}", loc="left",
+                     fontsize=8.5)
+        ax.set_xlabel("years relative to reform")
+    axes[0].set_ylabel("ATT, % (95 % CI)")
+    fig.suptitle(f"R&D tax-incentive reforms ({len(next(iter(results.values())).treated)}"
+                 " countries), not-yet-treated controls", x=0.02, ha="left",
+                 fontsize=10)
+    return _save(fig, outdir, "fig8_tax_reforms")
+

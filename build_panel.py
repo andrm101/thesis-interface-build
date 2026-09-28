@@ -120,6 +120,37 @@ def country_names(rows) -> dict[str, str]:
     return out
 
 
+def merge_policy(df: pd.DataFrame, policy_dir: str | None = None) -> pd.DataFrame:
+    """Add policy variables from data/raw/policy/ (see policy_data.py) when
+    those files are present; otherwise return *df* unchanged."""
+    import policy_data
+    pdir = policy_dir or policy_data.POLICY_DIR
+    if not os.path.isdir(pdir):
+        return df
+    pol = policy_data.build(pdir)
+    if pol.empty:
+        return df
+    d = df.merge(pol, on=["Country", "Year"], how="left")
+    if "GBARD_mEUR" in d:
+        d["GBARD_per_capita_EUR"] = d["GBARD_mEUR"] * 1e6 / d["Population"]
+        # public R&D budget relative to total R&D spending (both in EUR)
+        d["GBARD_share_GERD"] = d["GBARD_mEUR"] / d["GERD_mEUR"]
+        # GBARD in % of GDP without an EUR GDP series: share × R&D intensity
+        d["GBARD_pct_GDP"] = d["GBARD_share_GERD"] * d["RD_pct_GDP"]
+        # R&D not covered by the public budget (proxy for privately
+        # financed R&D; GBARD also funds R&D abroad and via EU channels)
+        d["NonGBARD_RD_pct_GDP"] = (d["RD_pct_GDP"] - d["GBARD_pct_GDP"]
+                                    ).where(lambda x: x > 0)
+    if "RD_subsidy_large_profit" in d:
+        ev = policy_data.tax_reform_events(d)
+        d["RD_tax_reform_year"] = d["Country"].map(ev)
+    bal = next((c for c in ("CAB_pct_potGDP", "Gov_balance_pct_GDP")
+                if c in d), None)
+    if bal:
+        d["Fiscal_consolidation"] = policy_data.consolidation_episodes(d, bal)
+    return d
+
+
 def build(raw_path: str = DEFAULT_RAW) -> pd.DataFrame:
     wb = openpyxl.load_workbook(raw_path, read_only=True, data_only=True)
     cache = {}
@@ -140,6 +171,10 @@ def build(raw_path: str = DEFAULT_RAW) -> pd.DataFrame:
             for code, f in researcher_fix.items():
                 if code in blk.index:
                     blk.loc[code] *= f
+        if col == "GERD_mEUR" and {"SVK", "SVN"} <= set(blk.index):
+            # Slovakia / Slovenia rows are swapped in the raw GERD sheet
+            # (every year matches the other country in Eurostat rd_e_gerdfund)
+            blk.loc[["SVK", "SVN"]] = blk.loc[["SVN", "SVK"]].to_numpy()
         s = blk.stack(future_stack=True).rename(col)
         s.index.names = ["Code", "Year"]
         frames.append(s)
@@ -147,8 +182,8 @@ def build(raw_path: str = DEFAULT_RAW) -> pd.DataFrame:
     df = df[df["Code"].isin(names) & (df["Code"] != "EUU")]
     df.insert(0, "Country", df["Code"].map(names))
     df["Year"] = df["Year"].astype(int)
-    return add_derived(df.sort_values(["Country", "Year"])
-                       .reset_index(drop=True))
+    return merge_policy(add_derived(df.sort_values(["Country", "Year"])
+                                    .reset_index(drop=True)))
 
 
 RD_DEPRECIATION = 0.15   # Griliches / OECD convention for R&D capital
@@ -231,6 +266,15 @@ def main():
     print(f"wrote {a.out}: {len(df)} rows, {df['Country'].nunique()} "
           f"countries, {df['Year'].min()}-{df['Year'].max()}, "
           f"{df.shape[1]} columns")
+    import policy_data
+    pcols = [c for c in ("GBARD_mEUR", "Gov_balance_pct_GDP",
+                         "RD_subsidy_large_profit") if c in df]
+    if pcols:
+        cov = policy_data.coverage(df, sorted(df["Country"].unique()), pcols)
+        out_cov = os.path.join(os.path.dirname(os.path.abspath(a.out)),
+                               "policy_coverage.csv")
+        cov.to_csv(out_cov, index=False)
+        print(f"policy coverage (1998-2023) → {out_cov}")
 
 
 if __name__ == "__main__":
