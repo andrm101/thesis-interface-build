@@ -37,7 +37,8 @@ DEFAULT_CONTROLS = ("Savings_rate", "Tertiary_share")
 STATES = ("Frontier gap > median (catch-up)", "A-priori Emerging group",
           "None (linear)")
 EVENT_SETS = ("EU accession (2004/2007/2013)",
-              "R&D tax reforms (OECD subsidy jumps)", "Custom (below)")
+              "R&D tax reforms (OECD subsidy jumps)",
+              "R&D tax reforms (policy documents)", "Custom (below)")
 
 
 class CausalTabMixin:
@@ -243,6 +244,14 @@ class CausalTabMixin:
             ev = (self.df.dropna(subset=[col]).groupby("Country")[col]
                   .first().astype(int))
             return ev.to_dict()
+        if choice == EVENT_SETS[2]:
+            from policy_docs.reconcile import load_documented
+            ev = load_documented()
+            if not ev:
+                messagebox.showwarning(
+                    "Events", "No documented reform dates yet — run "
+                    "python -m policy_docs.extract (needs Claude API access).")
+            return ev
         return causal.parse_events(self.cz_custom.get())
 
     def _cz_run(self, label, work, show):

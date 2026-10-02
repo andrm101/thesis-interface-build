@@ -1,4 +1,5 @@
 -r requirements-api.txt
+-r requirements-llm.txt
 pytest>=8
 ruff>=0.5
 httpx>=0.27        # FastAPI TestClient

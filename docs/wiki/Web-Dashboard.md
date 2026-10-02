@@ -16,6 +16,7 @@ The web dashboard puts the main analyses in a browser. It has two parts:
 | **Event study** | Run Callaway–Sant'Anna on the EU accession dates, the R&D tax-reform dates or your own `Country:Year` list. Choose never-treated or not-yet-treated controls, optional detrending, and 49–499 bootstrap draws. |
 | **Data coverage** | See which country-variable pairs have gaps over 2000–2023. |
 | **Results & figures** | Browse every section of `RESULTS.md`, and the thesis figures as PNG and PDF. |
+| **Assistant** | Ask a question in plain language. Claude answers by running the analyses above as tools and cites each result (r1, r2, …); every number in the answer is checked against those results. Optional: needs a Claude API key (see below). |
 
 ![Local projections, dark theme](https://raw.githubusercontent.com/andrm101/thesis-interface-build/main/docs/img/dashboard-projections.png)
 
@@ -41,6 +42,8 @@ uvicorn api.main:app --port 8000
 - Run `uvicorn api.main:app --reload` in one terminal and `npm start` in `web/` in another.
 - Then open http://localhost:4200. The page reloads on save, and API calls are forwarded to port 8000.
 - The API's interactive documentation is at http://localhost:8000/docs.
+
+**Enabling the Assistant.** Run `pip install -r requirements-llm.txt` and set `ANTHROPIC_API_KEY` before starting the API; with Docker, use `ANTHROPIC_API_KEY=… docker compose up --build`. Without a key, the page explains how to enable it and everything else works as before. Design notes: [`docs/LLM_DESIGN.md`](https://github.com/andrm101/thesis-interface-build/blob/main/docs/LLM_DESIGN.md).
 
 ## How it is built
 

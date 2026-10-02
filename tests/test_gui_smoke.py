@@ -29,7 +29,7 @@ def app(monkeypatch):
 
 
 def test_all_tabs_build_and_refresh(app):
-    assert app.nb.index("end") == 14
+    assert app.nb.index("end") == 15
     assert app.load_path(DATA_PATH)
     # Luxembourg is excluded by default: 22 countries x 24 years.
     assert app.df is not None and len(app.df) == 528
@@ -45,3 +45,13 @@ def test_theme_toggle_roundtrip(app):
     app._toggle_theme()
     app.root.update()
     assert app._errors == []
+
+
+def test_assistant_tab_shows_answer_and_grounding(app):
+    from agent.runner import Reply
+    app._as_busy = True
+    app._as_show(Reply("R&D intensity rose by 0.42 pp [r1].", [],
+                       {"verified": [], "unverified": ["0.42"]}, "end_turn"))
+    text = app.as_txt.get("1.0", "end")
+    assert "0.42 pp [r1]" in text and "not found in any tool result: 0.42" in text
+    assert app._as_busy is False

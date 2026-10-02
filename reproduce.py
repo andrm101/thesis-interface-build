@@ -454,6 +454,7 @@ def policy_section(df, nb):
           "outcome, so parallel trends are plausible\n(unlike EU accession, "
           "B9). R&D intensity rises after reforms but imprecisely;\noutput "
           "per worker does not move.\n"]
+    L += documented_reforms_section(df, ev, nb)
     d = df.copy()
     d["subsidy_pp"] = 100 * d["RD_subsidy_large_profit"]
     rows = []
@@ -489,6 +490,38 @@ def policy_section(df, nb):
     if "GBARD_pct_GDP" in df:
         L += gbard_section(df)
     return L
+
+
+def documented_reforms_section(df, derived, nb):
+    """D2b: the D2 event study on reform dates extracted from policy
+    documents (policy_docs/, frozen JSON) — skipped until any exist."""
+    from policy_docs.reconcile import RECON, load_documented
+    doc = {c: y for c, y in load_documented().items()
+           if c in set(df["Country"])}
+    if not doc:
+        return []
+    rows = []
+    for name, ev in (("documented", doc),
+                     ("documented ∩ derived ±1 y",
+                      {c: y for c, y in doc.items()
+                       if c in derived and abs(y - derived[c]) <= 1})):
+        if len(ev) < 2:
+            continue
+        r = causal.event_study(df, "RD_pct_GDP", ev, 3, 5, min(nb, 199),
+                               control=causal.CONTROL_GROUPS[1])
+        rows.append({"Dates": name, "Treated": len(r.treated),
+                     "Post ATT %": r.overall_post, "SE": r.overall_post_se,
+                     "Pre-trend p": pstar(r.pretrend_p)})
+    rec = pd.read_csv(RECON) if os.path.exists(RECON) else None
+    agree = ("" if rec is None else
+             f" Agreement with the derived dates: "
+             f"{(rec['status'] == 'confirmed').sum()} confirmed, "
+             f"{(rec['status'] == 'date_shift').sum()} shifted, "
+             f"{(rec['status'] == 'doc_only').sum()} only documented, "
+             f"{(rec['status'] == 'derived_only').sum()} only derived.")
+    return ["**D2b · Reform dates from policy documents** (policy_docs/, "
+            "quotes verified against the source):" + agree + "\n",
+            md_table(pd.DataFrame(rows)) if rows else "(too few dates)", ""]
 
 
 def gbard_section(df):

@@ -17,5 +17,6 @@ export class App {
     { path: '/events', label: 'Event study', icon: 'M12 3v18M4 15l4-4 4 3 8-8' },
     { path: '/coverage', label: 'Data coverage', icon: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z' },
     { path: '/results', label: 'Results & figures', icon: 'M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h7' },
+    { path: '/assistant', label: 'Assistant', icon: 'M4 5h16v11H9l-5 4zM8 10h.01M12 10h.01M16 10h.01' },
   ];
 }

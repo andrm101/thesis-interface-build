@@ -48,6 +48,16 @@ Full detail is in [`docs/DATA_AUDIT.md`](https://github.com/andrm101/thesis-inte
 
 R&D tax-reform dates are derived from jumps in the subsidy rate, not hand-coded (see [[Key Findings]] §7).
 
+## Policy documents (optional)
+
+The dates of the R&D tax reforms in D2 are derived from the OECD subsidy series. `policy_docs/` checks them against policy documents:
+- **Extraction:** Claude extracts each dated reform with a verbatim quote and page.
+- **Quote check:** the quote is matched against the document's text (pypdf, fuzzy score ≥ 90).
+- **Dates used:** only verified, generosity-raising events become documented dates.
+- **Reconciliation:** each country is classed as confirmed, date shift, only documented, or only derived.
+
+The raw documents stay local; the extracted JSON files are committed as the record.
+
 ## Maps
 
 The dashboard's maps use Natural Earth 1:50m country outlines (public domain), cut to Europe by `web/scripts/build-europe-map.mjs`. Overseas territories are left out.

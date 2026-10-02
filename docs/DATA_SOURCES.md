@@ -60,6 +60,15 @@ downloading.
 | Government effectiveness, regulatory quality, rule of law | World Bank WGI | `GE.EST`, `RQ.EST`, `RL.EST` | Institutional absorptive capacity |
 | R&D expenditure % GDP (cross-check) | World Bank WDI | `GB.XPD.RSDV.GD.ZS` | Fallback / cross-validation for GERD |
 
+## 5 · Policy documents (reform dates)
+
+| Document | Where | Used for |
+|---|---|---|
+| OECD "R&D tax incentives" country profiles (PDF), one per country | OECD R&D Tax Incentives database (oecd.org, R&D tax incentives section) | Dated reforms with quotes, `python -m policy_docs.extract` → D2b |
+| National legislation notes or ministry summaries (PDF/HTML) | Finance / economy ministries | Countries or years the OECD profiles do not cover |
+
+Put each country's files in `data/policy_docs/<Country>/`, named as the panel names it (e.g. `Czechia`, `Slovakia`).
+
 ## Suggested order of work
 
 1. GERD % GDP + GBARD + R&D tax-subsidy rate (the policy variables).

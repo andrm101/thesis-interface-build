@@ -2,6 +2,7 @@
 # served by the FastAPI back end together with the API.
 #   docker build -t eu-innovation-panel .
 #   docker run -p 8000:8000 eu-innovation-panel      → http://localhost:8000
+#   add -e ANTHROPIC_API_KEY=… to enable the research assistant
 
 # ── stage 1: build the Angular front end ─────────────────────────────────
 FROM node:24-alpine AS web
@@ -15,8 +16,8 @@ RUN npm run build
 FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 MPLBACKEND=Agg
 WORKDIR /app
-COPY requirements.txt requirements-api.txt ./
-RUN pip install --no-cache-dir -r requirements-api.txt
+COPY requirements.txt requirements-api.txt requirements-llm.txt ./
+RUN pip install --no-cache-dir -r requirements-api.txt -r requirements-llm.txt
 COPY . .
 COPY --from=web /web/dist/web/browser ./web/dist/web/browser
 RUN useradd --create-home app && chown -R app /app

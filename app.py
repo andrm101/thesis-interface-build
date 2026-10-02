@@ -37,6 +37,7 @@ from tabs.tab_var         import VARTabMixin
 from tabs.tab_advanced    import AdvancedTabMixin
 from tabs.tab_report      import ReportTabMixin
 from tabs.tab_causal      import CausalTabMixin
+from tabs.tab_assistant   import AssistantTabMixin
 
 
 APP_TITLE    = "Augmented Solow · R&D Heterogeneity Lab"
@@ -62,6 +63,7 @@ TAB_LAYOUT = [
     (" 12 · Advanced        ", "_tab_advanced",     "_refresh_adv_vars"),
     (" 13 · Report          ", "_tab_report",       None),
     (" 14 · Causal          ", "_tab_causal",       "_refresh_causal_vars"),
+    (" 15 · Assistant       ", "_tab_assistant",    None),
 ]
 
 
@@ -80,6 +82,7 @@ class ThesisApp(
     AdvancedTabMixin,
     ReportTabMixin,
     CausalTabMixin,
+    AssistantTabMixin,
 ):
     def __init__(self, root: tk.Tk) -> None:
         self.root = root

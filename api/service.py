@@ -99,6 +99,10 @@ def event_sets() -> dict[str, dict[str, int]]:
         ev = (d.dropna(subset=["RD_tax_reform_year"]).groupby("Country")
               ["RD_tax_reform_year"].first().astype(int))
         sets["R&D tax reforms"] = ev.to_dict()
+    from policy_docs.reconcile import load_documented
+    doc = {c: y for c, y in load_documented().items() if c in set(d["Country"])}
+    if doc:
+        sets["R&D tax reforms (documented)"] = doc
     return sets
 
 

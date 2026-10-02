@@ -104,3 +104,12 @@ export interface CoverageResponse {
 export interface ResultSection { id: string; title: string; track: string; }
 export interface ResultDetail extends ResultSection { markdown: string; }
 export interface Figure { name: string; title: string; png: string; pdf: string; }
+
+export interface AssistantStatus { available: boolean; model: string; detail: string; }
+export interface AssistantReply {
+  conversation_id: string;
+  answer: string;
+  tool_calls: { result_id: string; name: string; input: Record<string, unknown>; error: string | null }[];
+  grounding: { verified: string[]; unverified: string[] };
+  stop_reason: string;
+}
