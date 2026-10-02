@@ -10,6 +10,7 @@ Companion wiki for the thesis *An empirical investigation into the heterogeneous
 | understand how the results were produced | [[Methodology]] |
 | know which data were used and what was corrected | [[Data and Audit]] |
 | regenerate every number, figure and table | [[Reproducing Results]] |
+| explore the data and rerun analyses in a browser | [[Web Dashboard]] |
 | know what the evidence cannot say yet | [[Limitations and Next Steps]] |
 
 ## The argument in brief

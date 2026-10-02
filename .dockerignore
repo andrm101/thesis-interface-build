@@ -1,0 +1,13 @@
+.git
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.ruff_cache
+.venv
+venv
+web/node_modules
+web/dist
+web/.angular
+data/raw
+build
+dist
