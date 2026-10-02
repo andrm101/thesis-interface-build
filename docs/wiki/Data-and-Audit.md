@@ -1,4 +1,4 @@
-# Data and Audit
+<img src="https://raw.githubusercontent.com/andrm101/thesis-interface-build/main/docs/wiki/images/cover-data-and-audit.svg" alt="Data and Audit" width="100%">
 
 ## Sources
 
@@ -48,8 +48,14 @@ Full detail is in [`docs/DATA_AUDIT.md`](https://github.com/andrm101/thesis-inte
 
 R&D tax-reform dates are derived from jumps in the subsidy rate, not hand-coded (see [[Key Findings]] §7).
 
+## Maps
+
+The dashboard's maps use Natural Earth 1:50m country outlines (public domain), cut to Europe by `web/scripts/build-europe-map.mjs`. Overseas territories are left out.
+
 ## Consequences
 
 - K-Means on levels reproduces the thesis typology exactly.
 - Results that used `Human Capital Proxy` should be re-run on the rebuilt panel.
 - Luxembourg is still excluded on the rebuilt panel, but for patents per capita (z = 3.3) rather than human capital.
+
+<img src="https://raw.githubusercontent.com/andrm101/thesis-interface-build/main/assets/brand-divider.svg" alt="" width="100%">

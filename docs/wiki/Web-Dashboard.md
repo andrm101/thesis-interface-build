@@ -1,4 +1,4 @@
-# Web Dashboard
+<img src="https://raw.githubusercontent.com/andrm101/thesis-interface-build/main/docs/wiki/images/cover-web-dashboard.svg" alt="Web Dashboard" width="100%">
 
 The web dashboard puts the main analyses in a browser. It has two parts:
 - **Front end:** an Angular app, in `web/`.
@@ -54,3 +54,5 @@ uvicorn api.main:app --port 8000
 | Deployment | One Docker image | FastAPI serves the built Angular app and the API from the same address. |
 
 **Speed.** Local projections return in under a second. The event study scales with the number of bootstrap draws: about 4 s with 49 draws and 9 s with 99.
+
+<img src="https://raw.githubusercontent.com/andrm101/thesis-interface-build/main/assets/brand-divider.svg" alt="" width="100%">

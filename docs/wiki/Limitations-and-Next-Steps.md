@@ -1,4 +1,4 @@
-# Limitations and Next Steps
+<img src="https://raw.githubusercontent.com/andrm101/thesis-interface-build/main/docs/wiki/images/cover-limitations.svg" alt="Limitations and Next Steps" width="100%">
 
 ## Limitations
 
@@ -15,3 +15,6 @@
 3. **Hypotheses.** Of the eighteen literature-based hypotheses in [`docs/HYPOTHESES.md`](https://github.com/andrm101/thesis-interface-build/blob/main/docs/HYPOTHESES.md):
    - sixteen are tested (H15, Cohesion funds, only as a ready design);
    - H9 and H16 need further data: trade weights and governance indicators.
+4. **Dashboard.** Add the GMM specification grid and synthetic control to the [[Web Dashboard]]; both are in the desktop app only for now.
+
+<img src="https://raw.githubusercontent.com/andrm101/thesis-interface-build/main/assets/brand-divider.svg" alt="" width="100%">

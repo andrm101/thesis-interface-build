@@ -490,6 +490,7 @@ thesis-interface-build/
 │   └── raw/                 # raw workbook (local, git-ignored)
 ├── results/                 # RESULTS.md, figures/, tables/ (reproduce.py)
 ├── tabs/                    # one mixin per GUI tab (1-14)
+├── assets/                  # banner, dividers; make_covers.py → banner + wiki covers
 ├── docs/                    # DATA_AUDIT, DATA_SOURCES, HYPOTHESES, img/
 │   └── wiki/                # wiki source (synced to the GitHub wiki)
 ├── tests/                   # pytest (data, modules, planted-effect recovery, GUI smoke)
