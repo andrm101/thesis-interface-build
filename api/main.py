@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import os
 import sys
+import uuid
+from collections import OrderedDict
 from contextlib import asynccontextmanager
 from typing import Literal
 
@@ -131,6 +133,47 @@ def result(section_id: str):
 @app.get("/api/figures")
 def figures():
     return S.figures()
+
+
+# ── research assistant (optional: needs the anthropic package + a key) ────
+class AskRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=2000)
+    conversation_id: str | None = None
+
+
+_CONVERSATIONS: OrderedDict[str, object] = OrderedDict()
+_MAX_CONVERSATIONS = 50
+
+
+@app.get("/api/assistant/status")
+def assistant_status():
+    from llm import client as L
+    ok, why = L.availability()
+    return {"available": ok, "model": L.MODEL, "detail": why}
+
+
+@app.post("/api/assistant")
+def assistant(req: AskRequest):
+    from agent.runner import Assistant
+    from llm import client as L
+    ok, why = L.availability()
+    if not ok:
+        raise HTTPException(503, why)
+    cid = req.conversation_id or uuid.uuid4().hex
+    conv = _CONVERSATIONS.pop(cid, None) or Assistant()
+    _CONVERSATIONS[cid] = conv
+    while len(_CONVERSATIONS) > _MAX_CONVERSATIONS:
+        _CONVERSATIONS.popitem(last=False)
+    try:
+        with conv.lock:
+            reply = conv.ask(req.question)
+    except L.LLMRefusal as e:
+        raise HTTPException(422, str(e)) from e
+    except Exception as e:                      # API errors: report, keep serving
+        raise HTTPException(502, f"assistant failed: {e}") from e
+    return {"conversation_id": cid, "answer": reply.text,
+            "tool_calls": [vars(c) for c in reply.tool_calls],
+            "grounding": reply.grounding, "stop_reason": reply.stop_reason}
 
 
 if os.path.isdir(S.FIG_DIR):

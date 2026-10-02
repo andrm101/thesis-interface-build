@@ -10,3 +10,6 @@ dist/
 
 # Raw source workbook: kept local (public repo); run build_panel.py on it
 data/raw/
+
+# Policy documents for the extraction step (local; extracted JSON is committed)
+data/policy_docs/

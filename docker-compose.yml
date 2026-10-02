@@ -1,8 +1,12 @@
 # docker compose up --build   → http://localhost:8000
+# ANTHROPIC_API_KEY=… docker compose up --build   (assistant enabled)
 services:
   dashboard:
     build: .
     image: eu-innovation-panel
     ports:
       - "8000:8000"
+    environment:
+      # passed through from your shell; enables the research assistant
+      - ANTHROPIC_API_KEY
     restart: unless-stopped

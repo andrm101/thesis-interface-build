@@ -2,7 +2,7 @@ import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core';
 import { Observable, catchError, shareReplay, throwError } from 'rxjs';
 import {
-  ClubsResponse, CoverageResponse, EventStudyRequest, EventStudyResponse, Figure,
+  AssistantReply, AssistantStatus, ClubsResponse, CoverageResponse, EventStudyRequest, EventStudyResponse, Figure,
   LPRequest, LPResponse, Meta, ResultDetail, ResultSection, SeriesResponse,
   SnapshotResponse, TypologyResponse,
 } from './models';
@@ -38,6 +38,13 @@ export class ApiService {
 
   localProjections(req: LPRequest) {
     return this.http.post<LPResponse>('/api/local-projections', req).pipe(catchError(toMessage));
+  }
+  assistantStatus() {
+    return this.http.get<AssistantStatus>('/api/assistant/status').pipe(catchError(toMessage));
+  }
+  ask(question: string, conversation_id: string | null) {
+    return this.http.post<AssistantReply>('/api/assistant', { question, conversation_id })
+      .pipe(catchError(toMessage));
   }
   eventStudy(req: EventStudyRequest) {
     return this.http.post<EventStudyResponse>('/api/event-study', req).pipe(catchError(toMessage));

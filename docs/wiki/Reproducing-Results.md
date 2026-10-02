@@ -44,4 +44,17 @@ docker compose up --build              # → http://localhost:8000
 
 The [[Web Dashboard]] runs the same functions as `reproduce.py`: its Local projections presets reproduce D4, D5 and B8, its Event study reproduces D2 and B9, and its Results page shows every section of `RESULTS.md`.
 
+## Reform dates from policy documents (optional)
+
+D2 dates R&D tax reforms from jumps in the OECD subsidy series. To check those dates against the documents themselves, put the documents (for example the OECD "R&D tax incentives" country profiles) in `data/policy_docs/<Country>/`, then:
+
+```bash
+pip install -r requirements-llm.txt      # and set ANTHROPIC_API_KEY
+python -m policy_docs.extract            # → data/policy_events/extracted/*.json
+python reproduce.py                      # adds D2b
+```
+
+- **Quote check:** each extracted reform comes with a verbatim quote, and the quote must be found on its page before the reform is used as a date.
+- **Commit the results:** the extractions are cached by file hash, so commit them; every later run reads them without calling the API.
+
 <img src="https://raw.githubusercontent.com/andrm101/thesis-interface-build/main/assets/brand-divider.svg" alt="" width="100%">

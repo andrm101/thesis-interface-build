@@ -1,0 +1,5 @@
+# Optional: the research assistant (agent/) and the policy-document
+# extraction (policy_docs/). Both need a Claude API key (ANTHROPIC_API_KEY).
+anthropic>=1.11,<2
+pypdf>=5
+rapidfuzz>=3

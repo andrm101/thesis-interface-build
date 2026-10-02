@@ -16,5 +16,6 @@
    - sixteen are tested (H15, Cohesion funds, only as a ready design);
    - H9 and H16 need further data: trade weights and governance indicators.
 4. **Dashboard.** Add the GMM specification grid and synthetic control to the [[Web Dashboard]]; both are in the desktop app only for now.
+5. **Documented reform dates.** Run the policy-document extraction on the OECD country profiles. That gives D2b, an event study on dates confirmed by the documents, and a country-by-country check of the derived dates (`data/policy_events/reconciliation.csv`).
 
 <img src="https://raw.githubusercontent.com/andrm101/thesis-interface-build/main/assets/brand-divider.svg" alt="" width="100%">

@@ -13,5 +13,7 @@ export const routes: Routes = [
     title: 'Data coverage · EU Innovation Panel' },
   { path: 'results', loadComponent: () => import('./pages/results').then(m => m.Results),
     title: 'Results · EU Innovation Panel' },
+  { path: 'assistant', loadComponent: () => import('./pages/assistant').then(m => m.AssistantPage),
+    title: 'Assistant · EU Innovation Panel' },
   { path: '**', redirectTo: '' },
 ];

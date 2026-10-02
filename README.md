@@ -24,7 +24,7 @@ synthetic control, double machine learning).
 
 ## Contents
 
-1. [Quick start](#quick-start) · [Web dashboard](#web-dashboard-angular--fastapi)
+1. [Quick start](#quick-start) · [Web dashboard](#web-dashboard-angular--fastapi) · [Research assistant and policy documents](#research-assistant-and-policy-documents-optional-claude-api)
 2. [Key findings and interpretation](#key-findings-and-interpretation)
 3. [Methodology](#methodology) — the pipeline, the two data tracks, and how to reach every result
 4. [What reproduces — and what does not](#what-reproduces--and-what-does-not)
@@ -77,6 +77,7 @@ back end that calls the **same Python functions** as the desktop app and
 | Event study | Callaway-Sant'Anna on EU accession, R&D tax reforms or your own `Country:Year` events |
 | Data coverage | share of years with data, country × variable |
 | Results & figures | every `RESULTS.md` section rendered, plus the thesis figures (PNG/PDF) |
+| Assistant | ask questions in plain language; answers come from the analyses above, with cited results (see below) |
 
 Light and dark themes, phone-width layout, and the colour-blind-validated
 palette of the thesis figures.
@@ -99,6 +100,39 @@ uvicorn api.main:app --port 8000     # API + built app → http://localhost:8000
 --reload` and, in `web/`, `npm start`: the Angular dev server
 (http://localhost:4200) reloads on save and proxies `/api` to port 8000.
 API documentation is generated at http://localhost:8000/docs.
+
+### Research assistant and policy documents (optional, Claude API)
+
+Two optional features use the Claude API. Both need `pip install -r
+requirements-llm.txt` and an `ANTHROPIC_API_KEY`; without them everything
+else works unchanged, and CI never calls the API.
+
+**Research assistant** — the dashboard's *Assistant* page and desktop
+**Tab 15**. Ask a question in plain language ("Does public R&D funding crowd
+in private R&D?"); Claude answers by calling read-only tools that run the
+thesis's own analyses (local projections, event studies, rankings, clubs,
+`RESULTS.md` sections) and cites each result as `[r1]`, `[r2]`, ….
+**Every number in the answer is checked** against those tool results;
+numbers that cannot be traced are flagged as unverified.
+
+**Policy-document extraction** — checks the R&D tax-reform dates of D2,
+which are inferred from jumps in the OECD subsidy series, against what
+policy documents say:
+
+```bash
+# 1. put documents in data/policy_docs/<Country>/  (PDF, HTML or text;
+#    e.g. the OECD "R&D tax incentives" country profiles)
+python -m policy_docs.extract     # → data/policy_events/extracted/*.json
+python reproduce.py               # adds D2b: event study on documented dates
+```
+
+Each extracted reform carries a **verbatim quote and page**, and the quote
+is searched for in the document itself: unverified events are never used as
+dates. Extractions are cached by file hash and committed, so
+`reproduce.py` and the apps read them without calling the API. The
+reconciliation with the derived dates is written to
+`data/policy_events/reconciliation.csv` (confirmed, date shift, only
+documented, only derived). Design notes: [`docs/LLM_DESIGN.md`](docs/LLM_DESIGN.md).
 
 <img src="assets/brand-divider.svg" alt="" width="100%">
 
@@ -344,6 +378,7 @@ its own marker shape, so they remain readable in greyscale print.
 | C1 | β-convergence by typology | B | Tab 1 Innovative / Emerging → Tab 4 → Absolute β-Convergence |
 | D1 | Policy-data coverage | B | `data/policy_coverage.csv` (written by `build_panel.py`) |
 | D2 | R&D tax-reform event study | B | Tab 14 → Events: *R&D tax reforms* → Event Study (outcome `RD_pct_GDP` or `Y_per_worker`) |
+| D2b | Event study on reform dates from policy documents (once extracted) | B | `python -m policy_docs.extract`; Tab 14 → Events: *policy documents* |
 | D3 | Local projections of tax-subsidy changes | B | Tab 14 → treatment `RD_subsidy_large_profit` → Local Projections |
 | D4 | Local projections of the fiscal balance, headline and cyclically adjusted | B | Tab 14 → treatment `Gov_balance_pct_GDP` / `CAB_pct_potGDP` → Local Projections |
 | D5 | Public R&D budgets: additionality / crowding-in | B | Tab 14 → treatment `GBARD_pct_GDP`, *LP in levels* → Local Projections (outcome `RD_pct_GDP` / `NonGBARD_RD_pct_GDP`) |
@@ -393,7 +428,8 @@ presented with its diagnostics.**
 | **11 · VAR / IRF** | Lag selection, VAR, IRF / cumulative IRF, FEVD, forecasts, Granger, **Dumitrescu-Hurlin**, VECM, local-projection IRFs. |
 | **12 · Advanced** | Interactions, Driscoll-Kraay SEs, mean-group, quantile and threshold regressions. |
 | **13 · Report** | HTML report, figure export, text export. |
-| **14 · Causal** | Frontier FE, local projections, staggered event study, synthetic control, double ML. |
+| **14 · Causal** | Frontier FE, local projections, staggered event study (EU accession, derived or documented R&D tax reforms, custom), synthetic control, double ML. |
+| **15 · Assistant** | Questions in plain language, answered by running the analyses, with cited and number-checked results (optional; Claude API). |
 
 The 18 literature-based hypotheses and the tab that tests each are listed in
 [`docs/HYPOTHESES.md`](docs/HYPOTHESES.md).
@@ -482,6 +518,9 @@ thesis-interface-build/
 ├── gmm.py                   # Arellano-Bond / Blundell-Bond dynamic panel GMM
 ├── figures.py               # thesis figures (PNG/PDF) and LaTeX tables
 ├── api/                     # FastAPI back end for the web dashboard
+├── llm/                     # optional Claude API client + number grounding check
+├── agent/                   # research assistant: tools, prompt, tool loop
+├── policy_docs/             # reform extraction from policy documents, quote check, reconciliation
 ├── web/                     # Angular front end (ECharts); built into web/dist
 ├── Dockerfile · docker-compose.yml   # one-container deployment of the dashboard
 ├── panel_data.xlsx          # Track A: thesis panel
