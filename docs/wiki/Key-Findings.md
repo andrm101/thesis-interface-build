@@ -1,6 +1,6 @@
-# Key Findings
+<img src="https://raw.githubusercontent.com/andrm101/thesis-interface-build/main/docs/wiki/images/cover-key-findings.svg" alt="Key Findings" width="100%">
 
-Section IDs (A1…C1) refer to [`results/RESULTS.md`](https://github.com/andrm101/thesis-interface-build/blob/main/results/RESULTS.md), which `python reproduce.py` regenerates. Significance: \* 10 %, \*\* 5 %, \*\*\* 1 %.
+Section IDs (A1…C1) refer to [`results/RESULTS.md`](https://github.com/andrm101/thesis-interface-build/blob/main/results/RESULTS.md), which `python reproduce.py` regenerates. Significance: \* 10 %, \*\* 5 %, \*\*\* 1 %. Every result can also be explored and rerun in the [[Web Dashboard]].
 
 ## 1. Two R&D regimes are real
 
@@ -104,3 +104,5 @@ There is no sign of the hysteresis H14 predicts.
 2. **Show the estimates with their diagnostics.** Report the GMM estimates together with the full specification grid (Fig. 5, `results/tables/tab_gmm_grid.tex`).
 3. **Cite the data audit.** The submitted panel's `Human Capital Proxy` is misaligned (see [[Data and Audit]]).
 4. **Say which convergence holds.** It is established for the emerging economies and within clubs, not for the leaders or for the EU as a whole.
+
+<img src="https://raw.githubusercontent.com/andrm101/thesis-interface-build/main/assets/brand-divider.svg" alt="" width="100%">

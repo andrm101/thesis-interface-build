@@ -1,8 +1,8 @@
-# Reproducing Results
+<img src="https://raw.githubusercontent.com/andrm101/thesis-interface-build/main/docs/wiki/images/cover-reproducing-results.svg" alt="Reproducing Results" width="100%">
 
 ```bash
 pip install -r requirements.txt
-python reproduce.py --figures      # ≈ 2 minutes
+python reproduce.py --figures      # ≈ 5 minutes
 ```
 
 This writes three outputs:
@@ -27,7 +27,7 @@ All random steps are seeded, so the numbers are identical from run to run.
 
 The figures use a colour-blind-validated palette, and each series has its own marker shape, so they print legibly in greyscale.
 
-## In the app
+## In the desktop app
 
 ```bash
 python main.py                         # thesis panel
@@ -35,3 +35,13 @@ python main.py data/panel_levels.csv   # rebuilt level panel
 ```
 
 A Windows build (`EU-Innovation-Panel-windows.zip`) is attached to each [GitHub release](https://github.com/andrm101/thesis-interface-build/releases). The [README](https://github.com/andrm101/thesis-interface-build/blob/main/README.md#reaching-every-result) maps every result to its tab and button.
+
+## In the browser
+
+```bash
+docker compose up --build              # → http://localhost:8000
+```
+
+The [[Web Dashboard]] runs the same functions as `reproduce.py`: its Local projections presets reproduce D4, D5 and B8, its Event study reproduces D2 and B9, and its Results page shows every section of `RESULTS.md`.
+
+<img src="https://raw.githubusercontent.com/andrm101/thesis-interface-build/main/assets/brand-divider.svg" alt="" width="100%">

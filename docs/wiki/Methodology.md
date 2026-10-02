@@ -1,4 +1,4 @@
-# Methodology
+<img src="https://raw.githubusercontent.com/andrm101/thesis-interface-build/main/docs/wiki/images/cover-methodology.svg" alt="Methodology" width="100%">
 
 The full step-by-step description, with GUI locations and settings, is in the [README → Methodology](https://github.com/andrm101/thesis-interface-build/blob/main/README.md#methodology). This page summarises the design choices.
 
@@ -48,4 +48,6 @@ Every estimator is tested by recovering **planted effects** from synthetic data:
 - panel tests: CIPS and Dumitrescu–Hurlin size and power
 - convergence: two planted clubs
 
-The suite has 54 tests and runs in CI on Python 3.10 and 3.12.
+The suite has 69 tests, including the web API, and runs in CI on Python 3.10 and 3.12. CI also builds the Angular dashboard and smoke-tests its Docker image.
+
+<img src="https://raw.githubusercontent.com/andrm101/thesis-interface-build/main/assets/brand-divider.svg" alt="" width="100%">

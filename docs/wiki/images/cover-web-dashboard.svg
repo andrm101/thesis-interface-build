@@ -1,18 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="320" viewBox="0 0 1280 320" role="img" aria-label="Augmented Solow · R&amp;D Heterogeneity Lab. Desktop app and web dashboard for thesis-grade panel analysis">
-  <rect width="1280" height="320" fill="#081A2F"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="240" viewBox="0 0 1280 240" role="img" aria-label="Web Dashboard — Explore the panel and rerun the analyses in a browser">
+  <rect width="1280" height="240" fill="#081A2F"/>
   <g stroke="#355C7D" stroke-opacity="0.22" stroke-width="1">
-    <path d="M0 80H1280 M0 160H1280 M0 240H1280"/>
-    <path d="M320 0V320M640 0V320M960 0V320"/>
+    <path d="M0 80H1280 M0 160H1280"/>
+    <path d="M320 0V240M640 0V240M960 0V240"/>
   </g>
   <g fill="none" stroke="#14B8A6" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter">
-    <path d="M900 296H1000V256H1100V216H1180V256H1280"/>
+    <path d="M900 212H1000V168H1100V124H1180V168H1280"/>
   </g>
   <g fill="#081A2F" stroke="#14B8A6" stroke-width="3">
-    <rect x="992" y="288" width="16" height="16"/>
-    <rect x="1092" y="248" width="16" height="16"/>
+    <rect x="992" y="204" width="16" height="16"/>
+    <rect x="1092" y="160" width="16" height="16"/>
   </g>
-  <rect x="1172" y="208" width="16" height="16" fill="#14B8A6"/>
-  <g transform="translate(60 100)">
+  <rect x="1172" y="116" width="16" height="16" fill="#14B8A6"/>
+  <g transform="translate(60 62)">
     <line x1="52.5" y1="92.7" x2="89.4" y2="79.9" stroke="#355C7D" stroke-width="2.5"/>
     <line x1="52.5" y1="92.7" x2="12.6" y2="97.4" stroke="#355C7D" stroke-width="2.5"/>
     <line x1="67.7" y1="49.7" x2="89.4" y2="79.9" stroke="#355C7D" stroke-width="2.5"/>
@@ -31,8 +31,7 @@
     <rect x="4.6" y="89.4" width="16" height="16" fill="#14B8A6"/>
     <rect x="101.2" y="43.6" width="12" height="12" fill="#081A2F" stroke="#F4F7FA" stroke-width="2.5"/>
   </g>
-  <text x="220" y="140" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="52" font-weight="700" fill="#F4F7FA" letter-spacing="-1.5">Augmented Solow · R&amp;D Heterogeneity Lab</text>
-  <text x="222" y="182" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="24" font-weight="500" fill="#14B8A6">Desktop app and web dashboard for thesis-grade panel analysis</text>
-  <text x="222" y="222" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="20" font-weight="400" fill="#F4F7FA" fill-opacity="0.8">EU-25 · 1998–2023 · panel FE, GMM, convergence, causal designs</text>
-  <text x="222" y="258" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="400" fill="#F4F7FA" fill-opacity="0.55">Python · Tkinter · FastAPI · Angular · ECharts</text>
+  <text x="222" y="78" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#14B8A6" letter-spacing="2">AUGMENTED SOLOW · R&amp;D HETEROGENEITY LAB</text>
+  <text x="220" y="132" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="48" font-weight="700" fill="#F4F7FA" letter-spacing="-1.2">Web Dashboard</text>
+  <text x="222" y="172" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="22" font-weight="400" fill="#F4F7FA" fill-opacity="0.8">Explore the panel and rerun the analyses in a browser</text>
 </svg>

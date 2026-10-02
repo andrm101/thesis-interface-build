@@ -1,6 +1,6 @@
-# Augmented Solow · R&D Heterogeneity Lab
+<img src="https://raw.githubusercontent.com/andrm101/thesis-interface-build/main/docs/wiki/images/cover-home.svg" alt="Augmented Solow · R&D Heterogeneity Lab" width="100%">
 
-Companion wiki for the thesis *An empirical investigation into the heterogeneous impact of R&D investment on economic productivity across EU member states, 1998–2023*, and for the desktop app and reproduction scripts in [andrm101/thesis-interface-build](https://github.com/andrm101/thesis-interface-build).
+Companion wiki for the thesis *An empirical investigation into the heterogeneous impact of R&D investment on economic productivity across EU member states, 1998–2023*, and for the desktop app, the [[Web Dashboard]] and the reproduction scripts in [andrm101/thesis-interface-build](https://github.com/andrm101/thesis-interface-build).
 
 ## Start here
 
@@ -34,3 +34,5 @@ The evidence supports the **direction** of that argument, but the mechanism is d
 | Use | reproduce the thesis as submitted | corrected results, typology, convergence, causal designs |
 
 Everything in this wiki can be regenerated with `python reproduce.py --figures`.
+
+<img src="https://raw.githubusercontent.com/andrm101/thesis-interface-build/main/assets/brand-divider.svg" alt="" width="100%">
