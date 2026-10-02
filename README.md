@@ -69,8 +69,8 @@ back end that calls the **same Python functions** as the desktop app and
 
 | Page | What it shows |
 |---|---|
-| Overview | key figures, the R&D typology (PCA), Phillips-Sul convergence clubs, key findings |
-| Explore | any variable over time with up to six highlighted countries; ranking by year |
+| Overview | key figures, a map of the R&D clusters / convergence clubs, the typology (PCA), club transition paths, key findings |
+| Explore | any variable over time with up to six highlighted countries; a choropleth map of Europe with a year slider and *Play* animation (click a country to highlight it); ranking by year |
 | Local projections | live impulse responses with 95 % bands; presets for D4, D5 and B8; split by group |
 | Event study | Callaway-Sant'Anna on EU accession, R&D tax reforms or your own `Country:Year` events |
 | Data coverage | share of years with data, country × variable |

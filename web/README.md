@@ -15,5 +15,7 @@ Layout:
 - `src/app/core/` — API client and response types, theme (light/dark tokens),
   shared ECharts chrome
 - `src/app/pages/` — one lazily loaded component per page
+- `public/europe.json` — Europe outlines (Natural Earth 1:50m), rebuilt with
+  `node scripts/build-europe-map.mjs`
 - `src/styles.css` — design tokens; chart colours are the validated palette
   used by `figures.py`

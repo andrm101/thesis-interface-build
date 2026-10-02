@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import type { EChartsOption } from 'echarts';
@@ -6,13 +6,14 @@ import { NgxEchartsDirective } from 'ngx-echarts';
 import { combineLatest, debounceTime, switchMap } from 'rxjs';
 import { ApiService } from '../core/api.service';
 import { base, categoryAxis, fmt, groupColor, valueAxis } from '../core/charts';
+import { EuropeMap } from '../core/europe-map';
 import { ThemeService } from '../core/theme.service';
 
 const MAX_HIGHLIGHT = 6;
 
 @Component({
   selector: 'app-explore',
-  imports: [NgxEchartsDirective, FormsModule],
+  imports: [NgxEchartsDirective, FormsModule, EuropeMap],
   template: `
   <section class="page">
     <header class="page-head">
@@ -29,10 +30,13 @@ const MAX_HIGHLIGHT = 6;
           }
         </select>
       </label>
-      <label class="field">Ranking year: <b>{{ year() }}</b>
+      <label class="field">Year (map and ranking): <b>{{ year() }}</b>
         <input type="range" [min]="years()[0]" [max]="years()[1]" [ngModel]="year()"
-               (ngModelChange)="year.set(+$event)">
+               (ngModelChange)="stop(); year.set(+$event)">
       </label>
+      <button class="btn" type="button" (click)="playing() ? stop() : play()"
+              [attr.aria-label]="playing() ? 'Pause the animation' : 'Animate the years'">
+        {{ playing() ? '❚❚ Pause' : '▶ Play years' }}</button>
       <button class="btn" type="button" (click)="clear()">Clear highlights</button>
     </div>
 
@@ -73,9 +77,18 @@ const MAX_HIGHLIGHT = 6;
       </details>
     </div>
 
-    <div class="card">
-      <div class="card-head"><h2>Ranking in {{ year() }}</h2><span class="sub">{{ unit() }}</span></div>
-      <div echarts class="chart tall" [options]="barOptions()" [loading]="!snapshot()"></div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><h2>{{ label() }}, {{ year() }}</h2><span class="sub">{{ unit() }}</span></div>
+        <app-europe-map [values]="mapValues()" [range]="mapRange()" [unit]="unit()"
+                        [selected]="selected()" [height]="460" (countryClick)="toggle($event)" />
+        <p class="note">Colour scale fixed over 2000–2023, so years are comparable. Click a
+          country to highlight it.</p>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>Ranking in {{ year() }}</h2><span class="sub">{{ unit() }}</span></div>
+        <div echarts class="chart tall" [options]="barOptions()" [loading]="!snapshot()"></div>
+      </div>
     </div>
   </section>`,
   styles: [`
@@ -112,7 +125,38 @@ export class Explore {
   protected snapshot = toSignal(combineLatest([toObservable(this.variable), toObservable(this.year)]).pipe(
     debounceTime(150), switchMap(([v, y]) => this.api.snapshot(v, y))));
 
+  protected playing = signal(false);
+  private timer: ReturnType<typeof setInterval> | undefined;
+
+  /** values for the map: every panel country, in the selected year */
+  protected mapValues = computed(() => {
+    const d = this.series();
+    if (!d) return undefined;
+    const i = d.years.indexOf(this.year());
+    return Object.fromEntries(d.series.map(s => [s.country, i >= 0 ? s.values[i] : null]));
+  });
+  protected mapRange = computed<[number, number] | undefined>(() => {
+    const all = (this.series()?.series ?? []).flatMap(s => s.values)
+      .filter((v): v is number => v !== null && Number.isFinite(v));
+    return all.length ? [Math.min(...all), Math.max(...all)] : undefined;
+  });
+
+  protected play() {
+    const [first, last] = this.years();
+    if (this.year() >= last) this.year.set(first);
+    this.playing.set(true);
+    this.timer = setInterval(() => {
+      if (this.year() >= this.years()[1]) { this.stop(); return; }
+      this.year.update(y => y + 1);
+    }, 700);
+  }
+  protected stop() {
+    clearInterval(this.timer);
+    this.playing.set(false);
+  }
+
   constructor() {
+    inject(DestroyRef).onDestroy(() => this.stop());
     effect(() => { const y = this.years(); if (this.year() > y[1]) this.year.set(y[1]); });
   }
 

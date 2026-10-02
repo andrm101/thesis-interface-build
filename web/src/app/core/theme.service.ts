@@ -6,7 +6,7 @@ export type Mode = 'light' | 'dark';
  *  page chrome always use the same light/dark steps. */
 export interface Tokens {
   surface: string; ink: string; ink2: string; muted: string; grid: string; axis: string;
-  series: string[]; seq: string[];
+  surface2: string; series: string[]; seq: string[]; div: string[];
 }
 
 const KEY = 'eu-panel-theme';
@@ -23,6 +23,8 @@ export class ThemeService {
       grid: v('--grid'), axis: v('--axis'),
       series: [1, 2, 3, 4, 5, 6, 7, 8].map(i => v(`--s${i}`)),
       seq: [0, 1, 2, 3, 4, 5].map(i => v(`--seq-${i}`)),
+      surface2: v('--surface-2'),
+      div: ['--div-neg', '--div-neg-2', '--div-mid', '--div-pos-2', '--div-pos'].map(v),
     };
   });
 

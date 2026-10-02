@@ -1,10 +1,11 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import type { EChartsOption } from 'echarts';
 import { NgxEchartsDirective } from 'ngx-echarts';
 import { ApiService } from '../core/api.service';
 import { base, categoryAxis, groupColor, valueAxis } from '../core/charts';
+import { EuropeMap } from '../core/europe-map';
 import { ThemeService } from '../core/theme.service';
 
 const FINDINGS = [
@@ -20,7 +21,7 @@ const FINDINGS = [
 
 @Component({
   selector: 'app-overview',
-  imports: [NgxEchartsDirective, RouterLink],
+  imports: [NgxEchartsDirective, RouterLink, EuropeMap],
   template: `
   <section class="page">
     <header class="page-head">
@@ -46,6 +47,29 @@ const FINDINGS = [
 
     <div class="grid-2">
       <div class="card">
+        <div class="card-head"><h2>Where the groups are</h2>
+          <div class="chips" role="tablist">
+            <button type="button" role="tab" class="chip" [class.on]="mapMode() === 'typology'"
+                    (click)="mapMode.set('typology')">R&amp;D clusters</button>
+            <button type="button" role="tab" class="chip" [class.on]="mapMode() === 'clubs'"
+                    (click)="mapMode.set('clubs')">Convergence clubs</button>
+          </div></div>
+        <app-europe-map [categories]="mapCategories()" [categoryColors]="mapColors()" [height]="420" />
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>Key findings</h2>
+          <a routerLink="/results" class="sub">All results →</a></div>
+        <ol class="findings">
+          @for (f of findings; track f.id) {
+            <li><span>{{ f.text }}</span>
+              <a [routerLink]="['/results']" [queryParams]="{ id: f.id }" class="badge">{{ f.id }}</a></li>
+          }
+        </ol>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
         <div class="card-head"><h2>R&amp;D typology</h2>
           <span class="sub">{{ typSub() }}</span></div>
         <div echarts class="chart" [options]="typOptions()" [loading]="!typ()"></div>
@@ -61,16 +85,6 @@ const FINDINGS = [
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-head"><h2>Key findings</h2>
-        <a routerLink="/results" class="sub">All results →</a></div>
-      <ol class="findings">
-        @for (f of findings; track f.id) {
-          <li><span>{{ f.text }}</span>
-            <a [routerLink]="['/results']" [queryParams]="{ id: f.id }" class="badge">{{ f.id }}</a></li>
-        }
-      </ol>
-    </div>
   </section>`,
   styles: [`
     .findings { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
@@ -86,6 +100,23 @@ export class Overview {
   protected meta = toSignal(this.api.meta());
   protected typ = toSignal(this.api.typology());
   protected clubs = toSignal(this.api.clubs());
+
+  protected mapMode = signal<'typology' | 'clubs'>('typology');
+  protected mapCategories = computed<Record<string, string> | undefined>(() => {
+    if (this.mapMode() === 'typology') {
+      const t = this.typ();
+      return t ? Object.fromEntries(t.points.map(p => [p.country, p.cluster])) : undefined;
+    }
+    const c = this.clubs();
+    return c ? Object.fromEntries(c.paths.map(p => [p.country, p.club ? `Club ${p.club}` : 'Non-convergent'])) : undefined;
+  });
+  protected mapColors = computed<Record<string, string>>(() => {
+    const t = this.theme.tokens();
+    const out: Record<string, string> = { Innovative: groupColor(t, 'Innovative'), Emerging: groupColor(t, 'Emerging') };
+    for (let k = 1; k <= 8; k++) out[`Club ${k}`] = t.series[k - 1];
+    out['Non-convergent'] = t.muted;               // keys in legend order
+    return out;
+  });
 
   protected reforms = computed(() => {
     const ev = this.meta()?.event_sets['R&D tax reforms'];

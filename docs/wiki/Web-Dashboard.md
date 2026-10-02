@@ -10,8 +10,8 @@ The web dashboard puts the main analyses in a browser. It has two parts:
 
 | Page | What you can do |
 |---|---|
-| **Overview** | See the R&D typology (PCA of the K-Means clusters), the Phillips–Sul convergence clubs and the key findings, each linked to its result section. |
-| **Explore** | Plot any variable over time, highlight up to six countries against the rest, and rank countries in any year. |
+| **Overview** | See a map of Europe coloured by R&D cluster or convergence club, the R&D typology (PCA of the K-Means clusters), the Phillips–Sul transition paths and the key findings, each linked to its result section. |
+| **Explore** | Plot any variable over time, highlight up to six countries against the rest, map any year or press *Play* to animate 2000–2023 (click a country to highlight it), and rank countries in any year. |
 | **Local projections** | Run impulse responses live, in % or in levels, for all countries or split Innovative / Emerging. Presets reproduce D4, D5 and B8. |
 | **Event study** | Run Callaway–Sant'Anna on the EU accession dates, the R&D tax-reform dates or your own `Country:Year` list. Choose never-treated or not-yet-treated controls, optional detrending, and 49–499 bootstrap draws. |
 | **Data coverage** | See which country-variable pairs have gaps over 2000–2023. |
@@ -48,7 +48,8 @@ uvicorn api.main:app --port 8000
 |---|---|---|
 | Back end | FastAPI + Pydantic | Wraps `causal.py`, `clubs.py` and `reproduce.py` with typed requests. The panel loads once at start-up. |
 | Front end | Angular 22: standalone components, signals, lazily loaded pages | Each page downloads only when it is first opened. |
-| Charts | Apache ECharts via ngx-echarts | Built-in tooltips, legends and heatmaps. |
+| Charts | Apache ECharts via ngx-echarts | Built-in tooltips, legends, heatmaps and maps. |
+| Maps | Natural Earth 1:50m outlines, Lambert azimuthal equal-area projection | Country areas stay comparable, as in Eurostat's own maps. Variables that cross zero, such as the fiscal balance, use a diverging scale centred on 0. Countries outside the panel are hatched. `web/scripts/build-europe-map.mjs` rebuilds the outline file. |
 | Colours | The validated categorical palette of `figures.py` | The web charts and the thesis PDFs match, and both themes pass colour-blind checks. |
 | Deployment | One Docker image | FastAPI serves the built Angular app and the API from the same address. |
 
