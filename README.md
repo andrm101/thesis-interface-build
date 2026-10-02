@@ -24,7 +24,7 @@ synthetic control, double machine learning).
 
 ## Contents
 
-1. [Quick start](#quick-start)
+1. [Quick start](#quick-start) · [Web dashboard](#web-dashboard-angular--fastapi)
 2. [Key findings and interpretation](#key-findings-and-interpretation)
 3. [Methodology](#methodology) — the pipeline, the two data tracks, and how to reach every result
 4. [What reproduces — and what does not](#what-reproduces--and-what-does-not)
@@ -60,6 +60,45 @@ python reproduce.py                   # every headline result → results/RESULT
 On Linux, Tk comes from the system package manager (`sudo apt install
 python3-tk`). A dark palette is the default; toggle the light palette from
 the top-right corner for paper-ready screenshots.
+
+### Web dashboard (Angular + FastAPI)
+
+A browser version of the main analyses: an Angular front end on a FastAPI
+back end that calls the **same Python functions** as the desktop app and
+`reproduce.py`, so its numbers match `results/RESULTS.md`.
+
+![Web dashboard — overview](docs/img/dashboard-overview.png)
+
+| Page | What it shows |
+|---|---|
+| Overview | key figures, a map of the R&D clusters / convergence clubs, the typology (PCA), club transition paths, key findings |
+| Explore | any variable over time with up to six highlighted countries; a choropleth map of Europe with a year slider and *Play* animation (click a country to highlight it); ranking by year |
+| Local projections | live impulse responses with 95 % bands; presets for D4, D5 and B8; split by group |
+| Event study | Callaway-Sant'Anna on EU accession, R&D tax reforms or your own `Country:Year` events |
+| Data coverage | share of years with data, country × variable |
+| Results & figures | every `RESULTS.md` section rendered, plus the thesis figures (PNG/PDF) |
+
+Light and dark themes, phone-width layout, and the colour-blind-validated
+palette of the thesis figures.
+
+**Run it anywhere with Docker** (nothing else to install):
+
+```bash
+docker compose up --build            # → http://localhost:8000
+```
+
+**Or locally** (Python ≥ 3.10, Node ≥ 22.22.3 or 24 LTS):
+
+```bash
+pip install -r requirements-api.txt
+cd web && npm ci && npm run build && cd ..
+uvicorn api.main:app --port 8000     # API + built app → http://localhost:8000
+```
+
+**While developing the front end**, run the API with `uvicorn api.main:app
+--reload` and, in `web/`, `npm start`: the Angular dev server
+(http://localhost:4200) reloads on save and proxies `/api` to port 8000.
+API documentation is generated at http://localhost:8000/docs.
 
 <img src="assets/brand-divider.svg" alt="" width="100%">
 
@@ -442,13 +481,16 @@ thesis-interface-build/
 ├── causal.py                # frontier FE, LP, event study, SC, DML, scenarios
 ├── gmm.py                   # Arellano-Bond / Blundell-Bond dynamic panel GMM
 ├── figures.py               # thesis figures (PNG/PDF) and LaTeX tables
+├── api/                     # FastAPI back end for the web dashboard
+├── web/                     # Angular front end (ECharts); built into web/dist
+├── Dockerfile · docker-compose.yml   # one-container deployment of the dashboard
 ├── panel_data.xlsx          # Track A: thesis panel
 ├── data/
 │   ├── panel_levels.csv     # Track B: rebuilt level panel
 │   └── raw/                 # raw workbook (local, git-ignored)
 ├── results/                 # RESULTS.md, figures/, tables/ (reproduce.py)
 ├── tabs/                    # one mixin per GUI tab (1-14)
-├── docs/                    # DATA_AUDIT, DATA_SOURCES, HYPOTHESES
+├── docs/                    # DATA_AUDIT, DATA_SOURCES, HYPOTHESES, img/
 │   └── wiki/                # wiki source (synced to the GitHub wiki)
 ├── tests/                   # pytest (data, modules, planted-effect recovery, GUI smoke)
 └── .github/workflows/       # CI, Windows release build, wiki sync
@@ -463,6 +505,7 @@ pip install -r requirements-dev.txt
 ruff check --select E9,F63,F7,F82 .   # syntax errors / undefined names
 python -m pytest                      # add `xvfb-run -a` on headless Linux
 python reproduce.py --quick           # end-to-end smoke run of every analysis
+cd web && npm ci && npm run build     # type-checks and builds the dashboard
 ```
 
 The causal and convergence estimators are tested by **recovering planted
@@ -470,7 +513,8 @@ effects** from synthetic data (known ATT, synthetic-control weights, LP
 responses, DML θ and CATE, CIPS / Dumitrescu-Hurlin size and power, two
 planted convergence clubs, GMM ρ and β under endogeneity). The GMM estimator
 is additionally pinned to pydynpd (xtabond2 port) reference values. CI runs lint and the full suite on Python 3.10
-and 3.12 for every push and pull request.
+and 3.12 for every push and pull request, builds the Angular app, and
+smoke-tests the Docker image.
 
 ### Releasing a Windows build
 

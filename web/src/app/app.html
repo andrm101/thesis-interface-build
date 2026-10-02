@@ -1,0 +1,30 @@
+<div class="shell">
+  <aside class="side">
+    <div class="brand">
+      <span class="logo" aria-hidden="true"></span>
+      <div>
+        <div class="name">EU Innovation Panel</div>
+        <div class="tag">R&amp;D, productivity &amp; policy · 2000–2023</div>
+      </div>
+    </div>
+    <nav>
+      @for (n of nav; track n.path) {
+        <a [routerLink]="n.path" routerLinkActive="active"
+           [routerLinkActiveOptions]="{ exact: n.path === '/' }">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="n.icon" /></svg>
+          <span>{{ n.label }}</span>
+        </a>
+      }
+    </nav>
+    <div class="side-foot">
+      <button class="btn theme" type="button" (click)="theme.toggle()"
+              [attr.aria-label]="'Switch to ' + (theme.mode() === 'dark' ? 'light' : 'dark') + ' mode'">
+        {{ theme.mode() === 'dark' ? '☀ Light mode' : '☾ Dark mode' }}
+      </button>
+      <a class="src" href="https://github.com/andrm101/thesis-interface-build" target="_blank" rel="noopener">Source &amp; methods ↗</a>
+    </div>
+  </aside>
+  <main class="main">
+    <router-outlet />
+  </main>
+</div>

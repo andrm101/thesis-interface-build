@@ -10,6 +10,7 @@ Companion wiki for the thesis *An empirical investigation into the heterogeneous
 | understand how the results were produced | [[Methodology]] |
 | know which data were used and what was corrected | [[Data and Audit]] |
 | regenerate every number, figure and table | [[Reproducing Results]] |
+| explore the data and rerun analyses in a browser | [[Web Dashboard]] |
 | know what the evidence cannot say yet | [[Limitations and Next Steps]] |
 
 ## The argument in brief
@@ -20,6 +21,7 @@ The evidence supports the **direction** of that argument, but the mechanism is d
 - **Productivity drives R&D.** Countries spend more on R&D after they grow richer, which biases naive regressions.
 - **Once that feedback is removed, R&D pays off, mainly in the leaders.** This result depends on a narrow set of valid instrument choices.
 - **The catch-up economies converge quickly anyway.** Their growth comes mostly from sources other than their own R&D.
+- **Policy levers work slowly or only partly.** R&D tax reforms raise R&D spending a little, but not productivity. Public R&D budgets partly crowd out private R&D, above all in the leaders. Fiscal tightening costs output for about two years and leaves no lasting damage. See [[Key Findings]] §7–7c.
 
 ![R&D typology](https://raw.githubusercontent.com/andrm101/thesis-interface-build/main/results/figures/fig1_typology_pca.png)
 

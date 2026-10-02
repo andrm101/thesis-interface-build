@@ -1,0 +1,8 @@
+# docker compose up --build   → http://localhost:8000
+services:
+  dashboard:
+    build: .
+    image: eu-innovation-panel
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
