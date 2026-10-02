@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="320" viewBox="0 0 1280 320" role="img" aria-label="Augmented Solow · R&amp;D Heterogeneity Lab. Interactive desktop app for thesis-grade panel analysis">
+  <rect width="1280" height="320" fill="#081A2F"/>
+  <g stroke="#355C7D" stroke-opacity="0.22" stroke-width="1">
+    <path d="M0 80H1280M0 160H1280M0 240H1280"/>
+    <path d="M320 0V320M640 0V320M960 0V320"/>
+  </g>
+  <g fill="none" stroke="#14B8A6" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter">
+    <path d="M900 240H1000V160H1100V80H1180V160H1280"/>
+  </g>
+  <g fill="#081A2F" stroke="#14B8A6" stroke-width="3">
+    <rect x="992" y="232" width="16" height="16"/>
+    <rect x="1092" y="152" width="16" height="16"/>
+  </g>
+  <rect x="1172" y="72" width="16" height="16" fill="#14B8A6"/>
+  <g transform="translate(60 100)">
+    <line x1="52.5" y1="92.7" x2="89.4" y2="79.9" stroke="#355C7D" stroke-width="2.5"/>
+    <line x1="52.5" y1="92.7" x2="12.6" y2="97.4" stroke="#355C7D" stroke-width="2.5"/>
+    <line x1="67.7" y1="49.7" x2="89.4" y2="79.9" stroke="#355C7D" stroke-width="2.5"/>
+    <line x1="107.6" y1="14.7" x2="107.2" y2="49.6" stroke="#355C7D" stroke-width="2.5"/>
+    <line x1="89.4" y1="79.9" x2="107.2" y2="49.6" stroke="#355C7D" stroke-width="2.5"/>
+    <line x1="42.4" y1="25.1" x2="15.8" y2="60.7" stroke="#14B8A6" stroke-width="4"/>
+    <line x1="42.4" y1="25.1" x2="67.7" y2="49.7" stroke="#14B8A6" stroke-width="4"/>
+    <line x1="15.8" y1="60.7" x2="12.6" y2="97.4" stroke="#14B8A6" stroke-width="4"/>
+    <line x1="67.7" y1="49.7" x2="107.6" y2="14.7" stroke="#14B8A6" stroke-width="4"/>
+    <rect x="34.4" y="17.1" width="16" height="16" fill="#14B8A6"/>
+    <rect x="7.8" y="52.7" width="16" height="16" fill="#14B8A6"/>
+    <rect x="46.5" y="86.7" width="12" height="12" fill="#081A2F" stroke="#F4F7FA" stroke-width="2.5"/>
+    <rect x="59.7" y="41.7" width="16" height="16" fill="#14B8A6"/>
+    <rect x="99.6" y="6.7" width="16" height="16" fill="#14B8A6"/>
+    <rect x="83.4" y="73.9" width="12" height="12" fill="#081A2F" stroke="#F4F7FA" stroke-width="2.5"/>
+    <rect x="4.6" y="89.4" width="16" height="16" fill="#14B8A6"/>
+    <rect x="101.2" y="43.6" width="12" height="12" fill="#081A2F" stroke="#F4F7FA" stroke-width="2.5"/>
+  </g>
+  <text x="220" y="140" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="52" font-weight="700" letter-spacing="-1.5" fill="#F4F7FA">Augmented Solow · R&amp;D Heterogeneity Lab</text>
+  <text x="222" y="182" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="24" font-weight="500" fill="#14B8A6">Interactive desktop app for thesis-grade panel analysis</text>
+  <text x="222" y="222" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="20" font-weight="400" fill="#F4F7FA" fill-opacity="0.8">EU-25 · 1998–2023 · FE/RE, unit roots, causal designs</text>
+  <text x="222" y="258" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="400" fill="#F4F7FA" fill-opacity="0.55">Python · Tkinter · matplotlib</text>
+</svg>
