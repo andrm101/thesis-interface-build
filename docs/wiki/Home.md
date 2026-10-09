@@ -13,6 +13,12 @@ Companion wiki for the thesis *An empirical investigation into the heterogeneous
 | explore the data and rerun analyses in a browser | [[Web Dashboard]] |
 | know what the evidence cannot say yet | [[Limitations and Next Steps]] |
 
+## The thesis in 80 seconds
+
+[![Animated map of R&D intensity, 2000–2023](https://raw.githubusercontent.com/andrm101/thesis-interface-build/main/docs/media/thesis-explainer-map.gif)](https://github.com/andrm101/thesis-interface-build/blob/main/docs/media/thesis-explainer.mp4)
+
+[Watch the full explainer video (MP4)](https://github.com/andrm101/thesis-interface-build/blob/main/docs/media/thesis-explainer.mp4). It covers the two R&D regimes, R&D intensity from 2000 to 2023, which way causality runs, the convergence clubs and the policy results. Every number in it comes from the project's own code (`assets/motion/`).
+
 ## The argument in brief
 
 The thesis argues that R&D raises productivity in innovation leaders but not yet in catch-up economies. In pooled data, the catch-up economies' low absorptive capacity hides the effect: the *GERD paradox*.
