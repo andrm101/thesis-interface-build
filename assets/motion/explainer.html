@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>R&amp;D, productivity and policy in the EU — explainer</title>
+<!--
+  A code-drawn explainer: render(t) draws the frame at time t (seconds), so
+  render.mjs can capture it frame by frame. Open the page directly to watch
+  it play in real time. Every number comes from data.json, which
+  export_data.py computes with the same functions as reproduce.py.
+-->
+<style>
+  :root { --navy: #081A2F; --navy2: #0d2440; --grid: #355C7D; --teal: #14B8A6; --ink: #F4F7FA;
+          --inno: #3987e5; --emer: #d95926; --c3: #199e70; --muted: #7d8ea3; }
+  html, body { margin: 0; background: var(--navy); }
+  #stage { position: relative; width: 1280px; height: 720px; overflow: hidden; background: var(--navy);
+           font-family: Inter, "Segoe UI", "DejaVu Sans", Helvetica, Arial, sans-serif; color: var(--ink); }
+  svg { position: absolute; inset: 0; }
+  .txt { position: absolute; left: 64px; top: 150px; width: 420px; opacity: 0; }
+  .kicker { color: var(--teal); font-size: 15px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; }
+  .head { font-size: 38px; font-weight: 700; letter-spacing: -0.8px; line-height: 1.12; margin: 14px 0 18px; }
+  .body { font-size: 21px; line-height: 1.45; color: rgba(244,247,250,.82); }
+  .body b { color: var(--ink); }
+  .big { position: absolute; opacity: 0; }
+  .card { position: absolute; width: 330px; padding: 22px 24px; border-radius: 14px; background: var(--navy2);
+          border: 1px solid rgba(53,92,125,.6); opacity: 0; }
+  .card .k { color: var(--teal); font-size: 14px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+  .card .v { font-size: 44px; font-weight: 700; margin: 10px 0 6px; letter-spacing: -1px; }
+  .card .d { font-size: 17px; line-height: 1.4; color: rgba(244,247,250,.8); }
+  .legend { position: absolute; display: flex; gap: 18px; font-size: 16px; color: rgba(244,247,250,.85); opacity: 0; }
+  .legend i { display: inline-block; width: 14px; height: 14px; border-radius: 3px; margin-right: 7px; vertical-align: -2px; }
+  .src { position: absolute; left: 64px; bottom: 26px; font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <svg id="viz" width="1280" height="720" viewBox="0 0 1280 720" aria-hidden="true">
+    <defs>
+      <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <rect width="6" height="6" fill="#0c2138"/><line x1="0" y1="0" x2="0" y2="6" stroke="#1d3a58" stroke-width="2"/>
+      </pattern>
+    </defs>
+    <g id="bggrid" stroke="#355C7D" stroke-opacity="0.18"></g>
+    <g id="steps" fill="none" stroke="#14B8A6" stroke-width="3"></g>
+    <g id="mark" transform="translate(80 210) scale(1.6)"></g>
+    <g id="map" transform="translate(490 40)"></g>
+    <g id="arrows"></g>
+    <g id="clubs" transform="translate(540 90)"></g>
+  </svg>
+
+  <!-- scene text (left column) -->
+  <div class="txt" id="t1" style="left:300px;top:228px;width:940px">
+    <div class="kicker">Augmented Solow · R&amp;D Heterogeneity Lab</div>
+    <div class="head" style="font-size:50px">R&amp;D, productivity and policy<br>in 24 EU economies, 2000–2023</div>
+    <div class="body">What the evidence says, in 80 seconds</div>
+  </div>
+  <div class="txt" id="t2" style="left:180px;top:200px;width:920px;text-align:center">
+    <div class="kicker">The question</div>
+    <div class="head" style="font-size:50px">Does R&amp;D raise productivity?</div>
+    <div class="body" style="font-size:26px">Pool all EU countries together and the link looks weak:<br>the <b>GERD paradox</b>. The thesis asks whether it depends on<br><b>which kind of economy</b> spends the money.</div>
+  </div>
+  <div class="txt" id="t3">
+    <div class="kicker">1 · Two R&amp;D regimes</div>
+    <div class="head">Innovative leaders and Emerging catch-up economies</div>
+    <div class="body" id="t3b"></div>
+  </div>
+  <div class="txt" id="t4">
+    <div class="kicker">2 · R&amp;D intensity, % of GDP</div>
+    <div class="head" id="t4h"></div>
+    <div class="body" id="t4b"></div>
+  </div>
+  <div class="txt" id="t5">
+    <div class="kicker">3 · Which way causality runs</div>
+    <div class="head">Countries spend more on R&amp;D after they grow richer</div>
+    <div class="body">A panel Granger test finds that productivity predicts later R&amp;D, but not the other way round. Naive regressions mistake this feedback for an R&amp;D effect.</div>
+  </div>
+  <div class="txt" id="t6">
+    <div class="kicker">4 · Convergence clubs</div>
+    <div class="head">Catch-up is real, but in clubs</div>
+    <div class="body" id="t6b"></div>
+  </div>
+  <div class="txt" id="t7" style="top:70px;width:1150px">
+    <div class="kicker">5 · Policy levers</div>
+    <div class="head">They work slowly, or only in part</div>
+  </div>
+  <div class="txt" id="t8" style="left:300px;top:250px;width:940px">
+    <div class="kicker">Reproducible by design</div>
+    <div class="head" style="font-size:42px">Every number in this video comes from<br>the project's own code</div>
+    <div class="body">github.com/andrm101/thesis-interface-build<br>Desktop app · web dashboard · <code style="font-size:19px">python reproduce.py</code></div>
+  </div>
+
+  <div class="big" id="year" style="left:1090px;top:600px;font-size:64px;font-weight:700;letter-spacing:-2px"></div>
+  <div class="legend" id="legGroups" style="left:64px;top:560px">
+    <span><i style="background:var(--inno)"></i>Innovative</span><span><i style="background:var(--emer)"></i>Emerging</span>
+    <span><i style="border:1px solid #1d3a58;background:repeating-linear-gradient(45deg,#0c2138 0 3px,#1d3a58 3px 5px)"></i>not in panel</span></div>
+  <div class="legend" id="legRd" style="left:64px;top:628px;flex-direction:column;gap:8px">
+    <div id="rdRamp" style="width:300px;height:12px;border-radius:6px"></div>
+    <div style="display:flex;justify-content:space-between;width:300px"><span id="rdLo"></span><span id="rdHi"></span></div></div>
+  <div class="legend" id="legClubs" style="left:64px;top:590px"></div>
+
+  <div class="card" id="c1" style="left:64px;top:250px">
+    <div class="k">R&amp;D tax-incentive reforms</div><div class="v" id="c1v"></div><div class="d" id="c1d"></div></div>
+  <div class="card" id="c2" style="left:475px;top:250px">
+    <div class="k">Public R&amp;D budgets</div><div class="v" id="c2v"></div><div class="d" id="c2d"></div></div>
+  <div class="card" id="c3" style="left:886px;top:250px">
+    <div class="k">Fiscal tightening</div><div class="v" id="c3v"></div><div class="d" id="c3d"></div></div>
+
+  <div class="src" id="src">Data: World Bank WDI, Eurostat, OECD, AMECO · analysis: thesis-interface-build</div>
+</div>
+
+<script>
+const DURATION = 80;                                  // seconds
+// scene windows [start, end] (seconds)
+const SC = { t1: [0, 6], t2: [6, 14], t3: [14, 25], t4: [25, 42], t5: [42, 52], t6: [52, 63],
+             t7: [63, 75], t8: [75, 80] };
+const C = { inno: '#3987e5', emer: '#d95926', clubs: ['#199e70', '#c98500', '#9085e9', '#e66767'],
+            div: '#7d8ea3', base: '#16324f', stroke: '#081A2F' };
+const RAMP = ['#12304f', '#1c5cab', '#3987e5', '#86b6ef', '#cde2fb'];   // dark → light on navy
+
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const ease = x => (x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const prog = (t, a, b) => ease(clamp((t - a) / (b - a)));
+/** opacity of a scene: fade in over `f` s after start, out over `f` s before end */
+function sceneAlpha(t, [a, b], f = 0.7) { return Math.min(prog(t, a, a + f), 1 - prog(t, b - f, b)); }
+const $ = id => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  parent && parent.appendChild(e);
+  return e;
+}
+function hexMix(a, b, w) {
+  const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const [x, y] = [p(a), p(b)];
+  return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * w).toString(16).padStart(2, '0')).join('');
+}
+function rampColor(v, lo, hi) {
+  const z = clamp((v - lo) / (hi - lo)) * (RAMP.length - 1);
+  const i = Math.min(Math.floor(z), RAMP.length - 2);
+  return hexMix(RAMP[i], RAMP[i + 1], z - i);
+}
+const f1 = x => x.toFixed(1), f2 = x => x.toFixed(2);
+
+let D, paths = {}, clubLines = [], arrows = {};
+
+function build(data) {
+  D = data;
+  // background grid + brand step line + mark (as in the README banner)
+  const g = $('bggrid');
+  for (let y = 80; y < 720; y += 80) el('path', { d: `M0 ${y}H1280` }, g);
+  for (let x = 320; x < 1280; x += 320) el('path', { d: `M${x} 0V720` }, g);
+  el('path', { d: 'M900 690H1000V650H1100V610H1180V650H1280', id: 'stepPath' }, $('steps'));
+  $('mark').innerHTML = `
+    <g stroke="#355C7D" stroke-width="2.5"><line x1="52.5" y1="92.7" x2="89.4" y2="79.9"/><line x1="52.5" y1="92.7" x2="12.6" y2="97.4"/><line x1="67.7" y1="49.7" x2="89.4" y2="79.9"/><line x1="107.6" y1="14.7" x2="107.2" y2="49.6"/><line x1="89.4" y1="79.9" x2="107.2" y2="49.6"/></g>
+    <g stroke="#14B8A6" stroke-width="4"><line x1="42.4" y1="25.1" x2="15.8" y2="60.7"/><line x1="42.4" y1="25.1" x2="67.7" y2="49.7"/><line x1="15.8" y1="60.7" x2="12.6" y2="97.4"/><line x1="67.7" y1="49.7" x2="107.6" y2="14.7"/></g>
+    <g fill="#14B8A6"><rect x="34.4" y="17.1" width="16" height="16"/><rect x="7.8" y="52.7" width="16" height="16"/><rect x="59.7" y="41.7" width="16" height="16"/><rect x="99.6" y="6.7" width="16" height="16"/><rect x="4.6" y="89.4" width="16" height="16"/></g>
+    <g fill="#081A2F" stroke="#F4F7FA" stroke-width="2.5"><rect x="46.5" y="86.7" width="12" height="12"/><rect x="83.4" y="73.9" width="12" height="12"/><rect x="101.2" y="43.6" width="12" height="12"/></g>`;
+
+  // map
+  const inPanel = new Set(D.countries.map(c => c.name));
+  for (const p of D.map.paths) {
+    paths[p.name] = el('path', { d: p.d, fill: inPanel.has(p.name) ? C.base : 'url(#hatch)',
+                                 stroke: C.stroke, 'stroke-width': 0.8 }, $('map'));
+  }
+  // causality arrows
+  const ag = $('arrows');
+  const box = (x, y, label) => {
+    el('rect', { x, y, width: 230, height: 78, rx: 12, fill: '#0d2440', stroke: '#355C7D' }, ag);
+    const t = el('text', { x: x + 115, y: y + 48, 'text-anchor': 'middle', fill: '#F4F7FA',
+                           'font-size': 24, 'font-weight': 700 }, ag);
+    t.textContent = label;
+  };
+  box(560, 300, 'R&D'); box(990, 300, 'Productivity');
+  const g1 = D.granger;
+  arrows.top = mkArrow(ag, 985, 318, 800, 318, `productivity → R&D: p = ${g1.y_to_rd_p.toFixed(3)} (significant)`, '#14B8A6', true);
+  arrows.bot = mkArrow(ag, 800, 362, 985, 362, `R&D → productivity: p = ${g1.rd_to_y_p.toFixed(3)} (not significant)`, '#7d8ea3', false);
+
+  // clubs chart
+  const cg = $('clubs');
+  const yrs = D.clubs.years, all = D.clubs.paths.flatMap(p => p.values).filter(v => v != null);
+  const lo = Math.min(...all), hi = Math.max(...all), W = 640, H = 420;
+  D._cx = i => (i / (yrs.length - 1)) * W;
+  D._cy = v => H - ((v - lo) / (hi - lo)) * H;
+  el('path', { d: `M0 ${D._cy(1)}H${W}`, stroke: '#7d8ea3', 'stroke-dasharray': '4 6' }, cg);
+  const lab = el('text', { x: W + 8, y: D._cy(1) + 5, fill: '#7d8ea3', 'font-size': 14 }, cg);
+  lab.textContent = 'EU average';
+  [0, yrs.length - 1].forEach(i => {
+    const t = el('text', { x: D._cx(i), y: H + 26, fill: '#7d8ea3', 'font-size': 15,
+                           'text-anchor': i ? 'end' : 'start' }, cg);
+    t.textContent = yrs[i];
+  });
+  for (const p of D.clubs.paths) {
+    const col = p.club ? C.clubs[(p.club - 1) % 4] : C.div;
+    clubLines.push({ p, e: el('path', { fill: 'none', stroke: col, 'stroke-width': 2, 'stroke-linejoin': 'round' }, cg) });
+  }
+
+  // text that depends on data
+  const groups = D.countries.reduce((a, c) => (a[c.group] = (a[c.group] || 0) + 1, a), {});
+  $('t3b').innerHTML = `<b>${groups.Innovative} Innovative</b> economies spend far more on R&amp;D, researchers and patents than the <b>${groups.Emerging} Emerging</b> ones. Clustering countries on R&amp;D levels reproduces this grouping exactly (agreement ${Math.round(D.typology.agreement * 100)} %).`;
+  const allRd = Object.values(D.rd).flat().filter(v => v != null);
+  D._rdLo = Math.min(...allRd); D._rdHi = Math.max(...allRd);
+  const gm = (g, i) => { const v = D.countries.filter(c => c.group === g).map(c => D.rd[c.name][i]).filter(x => x != null);
+                        return v.reduce((a, b) => a + b, 0) / v.length; };
+  const last = D.years.length - 1;
+  D._g = { e0: gm('Emerging', 0), e1: gm('Emerging', last), i0: gm('Innovative', 0), i1: gm('Innovative', last) };
+  $('t4h').textContent = 'Catching up in relative terms, not in points';
+  $('rdRamp').style.background = `linear-gradient(90deg, ${RAMP.join(',')})`;
+  $('rdLo').textContent = f1(D._rdLo) + ' %'; $('rdHi').textContent = f1(D._rdHi) + ' %';
+  const nClubs = D.clubs.n, div = D.clubs.paths.filter(p => !p.club).length;
+  $('t6b').innerHTML = `Output per worker relative to the EU average: poorer economies are catching up, but they settle into <b>${nClubs} convergence clubs</b>, and ${div} countries follow no common path. Convergence holds in the Emerging group, not among the leaders.`;
+  $('legClubs').innerHTML = [...Array(nClubs).keys()].map(k => `<span><i style="background:${C.clubs[k]}"></i>Club ${k + 1}</span>`).join('')
+    + `<span><i style="background:${C.div}"></i>no club</span>`;
+  const tr = D.tax_reforms, gb = D.gbard, fi = D.fiscal;
+  $('c1v').textContent = `+${f1(tr.att)} %`;
+  $('c1d').innerHTML = `R&amp;D intensity after ${tr.n} reforms (SE ${f1(tr.se)}): <b>not significant</b>. Pre-trends pass (p = ${f2(tr.pretrend_p)}); productivity does not move.`;
+  $('c2v').textContent = `×${f2(gb.multiplier_h0)}`;
+  $('c2d').innerHTML = `Each 1 pp of GDP in public R&amp;D budgets adds only ${f2(gb.multiplier_h0)} pp of total R&amp;D: privately financed R&amp;D falls by ${f2(-gb.private_h0)} pp. <b>Partial crowding-out.</b>`;
+  $('c3v').textContent = `${f2(fi.y_h0)} %`;
+  $('c3d').innerHTML = `Output per worker after a 1 pp cyclically adjusted tightening, ${f2(fi.y_h1)} % a year later, back to ${fi.y_h3 >= 0 ? '+' : ''}${f2(fi.y_h3)} % by year 3. <b>No lasting damage.</b>`;
+}
+
+function mkArrow(g, x1, y, x2, y2, label, col, strong) {
+  const line = el('path', { d: `M${x1} ${y}L${x2} ${y2}`, stroke: col, 'stroke-width': strong ? 5 : 3,
+                            'stroke-dasharray': strong ? '' : '8 8', fill: 'none' }, g);
+  const dir = Math.sign(x2 - x1);
+  const head = el('path', { d: `M${x2} ${y2}l${-14 * dir} -9v18z`, fill: col }, g);
+  const t = el('text', { x: (x1 + x2) / 2, y: y + (strong ? -16 : 40), 'text-anchor': 'middle',
+                         fill: strong ? '#F4F7FA' : '#9aa9bb', 'font-size': 19, 'font-weight': strong ? 700 : 400 }, g);
+  t.textContent = label;
+  return { line, head, t, len: Math.abs(x2 - x1) };
+}
+
+function render(t) {
+  t = clamp(t, 0, DURATION);
+  for (const id in SC) $(id).style.opacity = sceneAlpha(t, SC[id]);
+
+  // brand mark and step line: title and outro only
+  const brand = Math.max(sceneAlpha(t, SC.t1), sceneAlpha(t, SC.t8));
+  $('mark').style.opacity = brand;
+  $('steps').style.opacity = 0.35 + 0.65 * brand;
+  const step = $('stepPath'); const L = step.getTotalLength();
+  step.setAttribute('stroke-dasharray', L);
+  step.setAttribute('stroke-dashoffset', L * (1 - prog(t, 0.3, 3)));
+
+  // map: visible from scene 3 through scene 4
+  const mapA = Math.min(prog(t, SC.t3[0], SC.t3[0] + 1), 1 - prog(t, SC.t4[1] - 0.8, SC.t4[1]));
+  $('map').style.opacity = mapA;
+  const yrs = D.years;
+  if (t < SC.t4[0] + 1) {                         // groups, coloured country by country
+    D.countries.forEach((c, i) => {
+      const w = prog(t, SC.t3[0] + 1.2 + i * 0.12, SC.t3[0] + 1.8 + i * 0.12);
+      paths[c.name] && paths[c.name].setAttribute('fill', hexMix(C.base, c.group === 'Innovative' ? C.inno : C.emer, w));
+    });
+  }
+  let yearF = 0;
+  if (t >= SC.t4[0]) {                            // R&D intensity, year by year
+    const k = prog(t, SC.t4[0] + 1.5, SC.t4[1] - 2.5) * (yrs.length - 1);
+    yearF = k;
+    const i = Math.min(Math.floor(k), yrs.length - 2), w = k - i;
+    const blend = prog(t, SC.t4[0], SC.t4[0] + 1.2);   // from group colours to the ramp
+    D.countries.forEach(c => {
+      const s = D.rd[c.name] || [], a = s[i], b = s[i + 1];
+      const v = a == null ? b : b == null ? a : a + (b - a) * w;
+      const groupCol = c.group === 'Innovative' ? C.inno : C.emer;
+      const rc = v == null ? C.base : rampColor(v, D._rdLo, D._rdHi);
+      paths[c.name] && paths[c.name].setAttribute('fill', hexMix(groupCol, rc, blend));
+    });
+    const means = g => {
+      const vs = D.countries.filter(c => c.group === g).map(c => {
+        const s = D.rd[c.name]; const yi = Math.round(k); return s ? s[yi] : null; }).filter(v => v != null);
+      return vs.reduce((a, b) => a + b, 0) / vs.length;
+    };
+    $('t4b').innerHTML = `Average R&amp;D intensity in <b>${yrs[Math.round(k)]}</b>:<br>`
+      + `<span style="color:${C.inno}">■</span> Innovative <b>${f2(means('Innovative'))} %</b> of GDP<br>`
+      + `<span style="color:${C.emer}">■</span> Emerging <b>${f2(means('Emerging'))} %</b> of GDP<br><br>`
+      + `From ${yrs[0]} to ${yrs[yrs.length - 1]} Emerging R&amp;D intensity rose from ${f2(D._g.e0)} to ${f2(D._g.e1)} %, `
+      + `but the gap stayed about ${f1(D._g.i1 - D._g.e1)} pp. Lighter = more R&amp;D.`;
+  }
+  $('year').textContent = yrs[Math.round(yearF)];
+  $('year').style.opacity = sceneAlpha(t, [SC.t4[0] + 1, SC.t4[1]]);
+  $('legGroups').style.opacity = sceneAlpha(t, [SC.t3[0] + 2, SC.t3[1] + 0.6]);
+  $('legRd').style.opacity = sceneAlpha(t, [SC.t4[0] + 1, SC.t4[1]]);
+
+  // causality arrows
+  const ar = sceneAlpha(t, SC.t5);
+  $('arrows').style.opacity = ar;
+  for (const [key, a, b] of [['top', SC.t5[0] + 1.5, SC.t5[0] + 3], ['bot', SC.t5[0] + 4, SC.t5[0] + 5.5]]) {
+    const A = arrows[key], q = prog(t, a, b);
+    if (key === 'top') { A.line.setAttribute('stroke-dasharray', A.len); A.line.setAttribute('stroke-dashoffset', A.len * (1 - q)); }
+    else A.line.style.opacity = q;
+    A.head.style.opacity = q > 0.95 ? 1 : 0; A.t.style.opacity = prog(t, b - 0.3, b + 0.5);
+  }
+
+  // clubs: lines drawn year by year
+  $('clubs').style.opacity = sceneAlpha(t, SC.t6);
+  $('legClubs').style.opacity = sceneAlpha(t, [SC.t6[0] + 1, SC.t6[1]]);
+  const n = D.clubs.years.length, upto = prog(t, SC.t6[0] + 1, SC.t6[1] - 3) * (n - 1);
+  for (const { p, e } of clubLines) {
+    let d = '';
+    for (let i = 0; i <= Math.ceil(upto) && i < n; i++) {
+      let v = p.values[i]; if (v == null) continue;
+      let x = D._cx(i);
+      if (i > upto) {                                   // partial last segment
+        const prev = p.values[i - 1]; const w = upto - (i - 1);
+        if (prev != null) { v = prev + (v - prev) * w; x = D._cx(i - 1 + w); }
+      }
+      d += (d ? 'L' : 'M') + x.toFixed(1) + ' ' + D._cy(v).toFixed(1);
+    }
+    e.setAttribute('d', d);
+  }
+
+  // policy cards, one after another
+  [['c1', 0.8], ['c2', 3.8], ['c3', 6.8]].forEach(([id, dt]) => {
+    const a = Math.min(prog(t, SC.t7[0] + dt, SC.t7[0] + dt + 0.8), 1 - prog(t, SC.t7[1] - 0.7, SC.t7[1]));
+    $(id).style.opacity = a;
+    $(id).style.transform = `translateY(${(1 - a) * 18}px)`;
+  });
+  $('src').style.opacity = 1 - brand * 0.4;
+}
+
+fetch('data.json').then(r => r.json()).then(d => {
+  build(d);
+  render(0);
+  window.ready = true;
+  window.render = render;
+  window.DURATION = DURATION;
+  if (!navigator.webdriver) {                     // live playback when opened in a browser
+    const t0 = performance.now();
+    const loop = () => { render(((performance.now() - t0) / 1000) % DURATION); requestAnimationFrame(loop); };
+    requestAnimationFrame(loop);
+  }
+});
+</script>
+</body>
+</html>

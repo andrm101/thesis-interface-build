@@ -20,6 +20,12 @@ convergence clubs, second-generation panel tests, leakage-safe machine
 learning and **causal designs** (local projections, staggered event study,
 synthetic control, double machine learning).
 
+**The thesis in 80 seconds** — [watch the explainer video (MP4)](docs/media/thesis-explainer.mp4).
+Every number in it is computed by the project's own code
+(`assets/motion/`); below, the R&D-intensity map scene:
+
+<a href="docs/media/thesis-explainer.mp4"><img src="docs/media/thesis-explainer-map.gif" alt="Animated map of R&D intensity across 24 EU economies, 2000–2023" width="100%"></a>
+
 <img src="assets/brand-divider.svg" alt="" width="100%">
 
 ## Contents
@@ -530,7 +536,8 @@ thesis-interface-build/
 ├── results/                 # RESULTS.md, figures/, tables/ (reproduce.py)
 ├── tabs/                    # one mixin per GUI tab (1-14)
 ├── assets/                  # banner, dividers; make_covers.py → banner + wiki covers
-├── docs/                    # DATA_AUDIT, DATA_SOURCES, HYPOTHESES, img/
+│   └── motion/              # code-drawn explainer video (export_data.py → explainer.html → render.mjs)
+├── docs/                    # DATA_AUDIT, DATA_SOURCES, HYPOTHESES, img/, media/ (video)
 │   └── wiki/                # wiki source (synced to the GitHub wiki)
 ├── tests/                   # pytest (data, modules, planted-effect recovery, GUI smoke)
 └── .github/workflows/       # CI, Windows release build, wiki sync
